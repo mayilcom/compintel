@@ -142,13 +142,13 @@ export default async function BriefsPage() {
                         <Badge variant="opportunity" className="text-[10px]">Read</Badge>
                       )
                     ) : null}
-                    {brief.sent_at && (
+                    {brief.sent_at ? (
                       <span className="text-[11px] text-muted">
                         {new Date(brief.sent_at as string).toLocaleDateString('en-IN', {
                           day: 'numeric', month: 'short',
                         })}
                       </span>
-                    )}
+                    ) : null}
                   </div>
                 </div>
               </Card>

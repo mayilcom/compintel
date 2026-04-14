@@ -5,6 +5,18 @@ Format: `[version] YYYY-MM-DD — Description`
 
 ---
 
+## [0.1.9] 2026-04-14 — Build fixes (TypeScript + Turbopack errors)
+
+### Fixed
+
+- `src/app/api/settings/team/route.ts` — operator precedence error: `|| ... ??` mix requires parens around the `||` operand before applying `??`.
+- `src/app/app/settings/team/page.tsx` — same operator precedence fix (identical pattern).
+- `src/app/api/settings/subscription/route.ts` — Supabase `GenericStringError` type not directly castable to account shape; cast through `unknown` first.
+- `src/app/app/settings/subscription/page.tsx` — same `as unknown as` cast fix.
+- `src/app/app/briefs/page.tsx` — `brief.sent_at` typed `unknown` (from `Record<string, unknown>` row); changed `&&` short-circuit to ternary `? ... : null` so TypeScript accepts it as `ReactNode`.
+
+---
+
 ## [0.1.8] 2026-04-14 — Single-domain deployment (emayil.com)
 
 ### Changed

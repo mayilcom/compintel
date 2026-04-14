@@ -23,7 +23,7 @@ export async function GET() {
 
   if (accErr || !account) return NextResponse.json({ error: 'Account not found' }, { status: 404 })
 
-  const acc = account as {
+  const acc = account as unknown as {
     account_id:               string
     plan:                     string
     subscription_status:      string

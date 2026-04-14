@@ -55,8 +55,8 @@ export default async function TeamSettingsPage() {
       })
       members = memberships.data.map((m) => ({
         id:       m.publicUserData?.userId ?? '',
-        name:     [m.publicUserData?.firstName, m.publicUserData?.lastName].filter(Boolean).join(' ')
-                  || m.publicUserData?.identifier ?? 'Unknown',
+        name:     ([m.publicUserData?.firstName, m.publicUserData?.lastName].filter(Boolean).join(' ')
+                  || m.publicUserData?.identifier) ?? 'Unknown',
         email:    m.publicUserData?.identifier ?? '',
         role:     m.role === 'org:admin' ? 'Owner' : 'Member',
         joinedAt: new Date(m.createdAt).toLocaleDateString('en-IN', {

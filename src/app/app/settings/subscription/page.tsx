@@ -41,7 +41,7 @@ export default async function SubscriptionSettingsPage() {
 
   if (!account) redirect('/onboarding/brand')
 
-  const acc = account as {
+  const acc = account as unknown as {
     account_id:               string
     plan:                     string
     subscription_status:      string | null
