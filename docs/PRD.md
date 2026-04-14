@@ -4,7 +4,7 @@
 **Date:** 2026-04-14  
 **Status:** V1 in build  
 **Product:** Mayil — Weekly competitive intelligence for founders and marketing heads  
-**Domain:** emayil.com | app.emayil.com
+**Domain:** emayil.com
 
 ### Revision history
 
@@ -168,8 +168,8 @@ Mayil has four surfaces:
 |---------|-------------|--------|
 | **Email brief** | All recipients (including non-users) | No login required |
 | **Web brief** (`/brief/:id`) | Email recipients viewing in browser or sharing | No login required |
-| **Dashboard** (`app.emayil.com`) | Account owner and team members | Clerk auth |
-| **Admin** (`app.emayil.com/admin`) | Internal Mayil team | Cookie password auth |
+| **Dashboard** (`emayil.com/app`) | Account owner and team members | Clerk auth |
+| **Admin** (`emayil.com/admin`) | Internal Mayil team | Cookie password auth |
 
 **The email brief is the product.** The dashboard is the control plane. Mayil is designed so that a recipient who never logs into the dashboard still gets full value.
 
@@ -956,7 +956,7 @@ Email footer → "Unsubscribe" link → GET /api/unsubscribe?id={id}&token={hmac
 
 Static confirmation. No auth required. Content:
 - *"You've been unsubscribed. You won't receive any more Mayil briefs."*
-- Link to re-subscribe (links back to `app.emayil.com`)
+- Link to re-subscribe (links back to `emayil.com`)
 
 ### Re-subscribe
 

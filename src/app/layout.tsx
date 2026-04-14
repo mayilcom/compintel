@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   description:
     'A weekly AI-powered competitive intelligence brief for founders and marketing heads. Track 12+ channels. Delivered every Sunday.',
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.emayil.com'
+    process.env.NEXT_PUBLIC_APP_URL ?? 'https://emayil.com'
   ),
   openGraph: {
     title: 'Mayil — Competitive intelligence, weekly',

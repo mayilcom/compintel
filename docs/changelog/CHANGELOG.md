@@ -5,6 +5,23 @@ Format: `[version] YYYY-MM-DD — Description`
 
 ---
 
+## [0.1.8] 2026-04-14 — Single-domain deployment (emayil.com)
+
+### Changed
+
+- Deployment URL consolidated to `emayil.com` (was `app.emayil.com`). The subdomain added complexity with no user-facing benefit since the landing page and app are a single Next.js deployment.
+- `NEXT_PUBLIC_APP_URL` default fallback updated in `src/app/layout.tsx`, `src/app/brief/[brief_id]/page.tsx`, and `apps/workers/src/workers/brief-assembler.ts`.
+- `.env.local.example` updated to reflect `https://emayil.com`.
+- All documentation updated: `CLAUDE.md`, `docs/README.md`, `docs/PRD.md`, `docs/architecture/overview.md`.
+
+### Action required on deploy
+
+- Set `NEXT_PUBLIC_APP_URL=https://emayil.com` in Vercel environment variables.
+- Update Clerk Dashboard redirect URLs from `app.emayil.com/*` to `emayil.com/*`.
+- Update Razorpay, Stripe, and Clerk webhook URLs to `emayil.com/api/webhooks/*`.
+
+---
+
 ## [0.1.7] 2026-04-14 — Settings pages wired, onboarding complete, upgrade checkout, team management
 
 ### Added

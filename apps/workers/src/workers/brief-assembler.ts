@@ -24,7 +24,7 @@ import { unsubscribeUrl } from '../lib/unsubscribe'
 const log    = makeLogger('brief-assembler')
 const client = new Anthropic()
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.emayil.com'
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://emayil.com'
 
 function currentWeekStart(): string {
   const d = new Date()

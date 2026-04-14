@@ -21,7 +21,7 @@ Mayil is a B2B SaaS that delivers a weekly competitive intelligence brief every 
 └───────────────────────────┬─────────────────────────────────────┘
                             │
 ┌───────────────────────────▼─────────────────────────────────────┐
-│                      app.emayil.com                             │
+│                        emayil.com                               │
 │                    Dashboard / Web app                          │
 │              (Next.js App Router, Clerk auth)                   │
 │                                                                 │

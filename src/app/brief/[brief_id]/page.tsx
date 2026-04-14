@@ -126,7 +126,7 @@ export default async function PublicBriefPage({
               Mayil · Brief #{issueNumber} · {weekRange}
             </p>
             <a
-              href={process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.emayil.com'}
+              href={process.env.NEXT_PUBLIC_APP_URL ?? 'https://emayil.com'}
               className="text-[11px] text-muted hover:text-ink transition-colors"
             >
               View dashboard →

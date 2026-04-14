@@ -1,7 +1,7 @@
 # Mayil — Documentation
 
 **Product:** Mayil — Weekly competitive intelligence briefs for CMOs and founders  
-**Domain:** emayil.com / app.emayil.com  
+**Domain:** emayil.com  
 **Stack:** Next.js 16, Clerk, Supabase, Razorpay + Stripe, Railway, Resend, Claude API
 
 ---

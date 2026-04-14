@@ -4,7 +4,7 @@
 
 **Mayil** is a B2B competitive intelligence SaaS. It delivers a weekly AI-interpreted brief to founders and marketing heads every Sunday at 7am IST. The brief tracks competitor activity across 12+ channels (Instagram, Meta Ads, Amazon, Google Ads, LinkedIn, YouTube, News/PR).
 
-**Domain:** emayil.com | **App:** app.emayil.com | **Codebase:** `C:\Users\beemy\Mayil`
+**Domain:** emayil.com | **Codebase:** `C:\Users\beemy\Mayil`
 
 ---
 
