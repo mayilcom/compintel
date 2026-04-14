@@ -1,0 +1,175 @@
+# API Integrations
+
+**Last updated:** 2026-04-14
+
+---
+
+## Apify
+
+**Purpose:** Managed web scraping for Instagram, Amazon, Google Ads, LinkedIn, YouTube  
+**Billing:** Pay-per-compute-unit. Estimate: ~$15–30/month at 50 accounts.
+
+### Actors used
+
+| Actor | Channel | Notes |
+|-------|---------|-------|
+| `apify/instagram-scraper` | Instagram | Profile stats, recent posts, story count proxy |
+| `apify/amazon-product-scraper` | Amazon | ASIN-based; returns rating, review count, price |
+| `apify/google-ads-transparency` | google_search | Public transparency center scrape. Channel key is `google_search`. |
+| `apify/linkedin-company-scraper` | LinkedIn | Growth+ only; post frequency, follower count |
+
+### Usage pattern
+
+```ts
+const run = await apifyClient.actor('apify/instagram-scraper').call({
+  usernames: ['britanniaindustries', 'oreoIndia'],
+  resultsLimit: 50,
+})
+const { items } = await apifyClient.dataset(run.defaultDatasetId).listItems()
+```
+
+### Rate limits
+- Apify runs actors in parallel — no per-account rate limit on our end
+- Instagram may throttle if too many concurrent runs; stagger with 2–5s delay between accounts
+
+---
+
+## Claude API (Anthropic)
+
+**Purpose:** Signal interpretation — converting raw deltas into natural language signals with strategic implications  
+**Model:** `claude-sonnet-4-5`  
+**Billing:** ~$3/MTok input, $15/MTok output. Estimate: ~$5–20/month at 50 accounts.
+
+### Usage pattern
+
+```ts
+const response = await anthropic.messages.create({
+  model: 'claude-sonnet-4-5',
+  max_tokens: 400,
+  messages: [{ role: 'user', content: buildSignalPrompt(signal, brand) }],
+})
+```
+
+### Fallback
+If Claude API fails (rate limit, outage), retry once after 10s. On second failure, switch to GPT-4o via OpenAI API with identical prompt. If both fail, mark signal `ai_failed = true` and use raw delta text as body.
+
+---
+
+## Resend
+
+**Purpose:** Transactional email delivery for weekly briefs  
+**From domain:** `briefs@emayil.com`  
+**Billing:** Free up to 3,000 emails/month; $20/month for 50,000.
+
+### Setup
+- SPF record: `v=spf1 include:_spf.resend.com ~all`
+- DKIM: Resend-generated CNAME records on `emayil.com`
+- DMARC: `v=DMARC1; p=quarantine; rua=mailto:dmarc@emayil.com`
+
+### Usage pattern
+
+```ts
+await resend.emails.send({
+  from: 'Mayil Brief <briefs@emayil.com>',
+  to: recipient.email,
+  subject: `Brief #${brief.issue_number} · ${brief.headline}`,
+  html: renderedBriefHtml,
+})
+```
+
+### Custom domain sending (settings feature)
+Growth and Agency accounts can verify their own domain (e.g. `intelligence@theirbrand.com`) via DNS verification flow in Settings → Delivery. Resend supports multiple verified domains per account.
+
+---
+
+## Clerk
+
+**Purpose:** Authentication, session management, Google SSO, multi-seat organisations  
+**Billing:** Free up to 10,000 MAU; then $0.02/MAU.
+
+### Webhooks from Clerk
+
+Clerk sends webhooks on user/org lifecycle events. Mayil listens at `/api/webhooks/clerk`:
+
+| Event | Action |
+|-------|--------|
+| `user.created` | Create `accounts` row (trial plan, `clerk_user_id` set) |
+| `user.updated` | Sync email if changed |
+| `organization.created` | Update `accounts.clerk_org_id` |
+| `organization.deleted` | Soft-delete account |
+| `organizationMembership.created` | Log new team member |
+| `organizationMembership.deleted` | Log removal |
+
+**Note:** Clerk organisations are not created at sign-up. The org is created lazily on the first team invite from Settings → Team (via `POST /api/settings/team`). Until then, `accounts.clerk_org_id` is NULL.
+
+---
+
+## Supabase
+
+**Purpose:** PostgreSQL database with RLS  
+**Billing:** Free tier (500MB, 2 projects); Pro at $25/month for production.
+
+### Client setup
+
+Two client variants:
+
+```ts
+// Browser client (client components)
+// src/lib/supabase/client.ts
+import { createBrowserClient } from '@supabase/ssr'
+export const supabase = createBrowserClient(url, anonKey)
+
+// Server client (server components, API routes)
+// src/lib/supabase/server.ts
+import { createServerClient } from '@supabase/ssr'
+export function createClient(cookies) { ... }
+```
+
+The server client forwards the Clerk JWT via `global.headers` so RLS policies see the correct user.
+
+---
+
+## IPQualityScore
+
+**Purpose:** VPN/proxy detection on the pricing page to prevent Indian pricing abuse  
+**Billing:** Free up to 5,000 requests/month; $50/month for 100,000.
+
+### Usage
+
+```ts
+// /api/geo — called by pricing page on load
+const response = await fetch(
+  `https://ipqualityscore.com/api/json/ip/${IPQS_KEY}/${clientIp}`
+)
+const { country_code, vpn, proxy, tor } = await response.json()
+return { region: country_code === 'IN' && !vpn && !proxy ? 'in' : 'row' }
+```
+
+### Pricing page behaviour
+- Default: show USD pricing (safe)
+- If `/api/geo` returns `region: 'in'`: switch to INR pricing
+- If VPN detected for Indian IP: stay on USD pricing, show a note
+
+---
+
+## Meta Ads Library API
+
+**Purpose:** Public competitor ad data (no auth required)  
+**Endpoint:** `https://www.facebook.com/ads/library/api/`  
+**Billing:** Free (rate limited)
+
+Meta's Ads Library is a public transparency tool. No authentication is needed for basic ad searches. Rate limit: ~10 requests/minute. The collector staggers requests across competitor accounts.
+
+---
+
+## YouTube Data API v3
+
+**Purpose:** Competitor YouTube channel activity  
+**Billing:** Free 10,000 units/day quota (1 search = 100 units; 1 video list = 1 unit).  
+**Auth:** API key (no user OAuth needed for public data)
+
+---
+
+## Google Sheets (future)
+
+A future integration will allow accounts to export their signal history to a Google Sheet for their own analysis. Not in V1.

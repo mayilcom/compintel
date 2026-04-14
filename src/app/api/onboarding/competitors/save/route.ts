@@ -1,0 +1,87 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@clerk/nextjs/server'
+import { createServiceClient } from '@/lib/supabase/server'
+
+interface CompetitorInput {
+  brand_name:   string
+  domain?:      string | null
+  instagram?:   string | null
+  amazon_brand?: string | null
+  category?:    string | null
+}
+
+/**
+ * POST /api/onboarding/competitors/save
+ * Inserts confirmed competitor brands for the current account.
+ * Skips duplicates (brand_name already exists for this account).
+ *
+ * Body: { competitors: CompetitorInput[] }
+ */
+export async function POST(req: NextRequest) {
+  const { userId } = await auth()
+  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  let body: { competitors?: unknown }
+  try { body = await req.json() } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
+  }
+
+  if (!Array.isArray(body.competitors) || body.competitors.length === 0) {
+    return NextResponse.json({ error: 'competitors array is required' }, { status: 400 })
+  }
+
+  const competitors = body.competitors as CompetitorInput[]
+
+  const db = createServiceClient()
+
+  const { data: account, error: accErr } = await db
+    .from('accounts')
+    .select('account_id, category')
+    .eq('clerk_user_id', userId)
+    .single()
+
+  if (accErr || !account) {
+    return NextResponse.json({ error: 'Account not found' }, { status: 404 })
+  }
+
+  const { account_id: accountId, category: accountCategory } =
+    account as { account_id: string; category: string | null }
+
+  // Fetch existing competitor names to avoid duplicates
+  const { data: existing } = await db
+    .from('brands')
+    .select('brand_name')
+    .eq('account_id', accountId)
+    .eq('is_client', false)
+
+  const existingNames = new Set(
+    ((existing ?? []) as Array<{ brand_name: string }>).map(b => b.brand_name.toLowerCase())
+  )
+
+  const toInsert = competitors
+    .filter(c => c.brand_name?.trim() && !existingNames.has(c.brand_name.trim().toLowerCase()))
+    .map(c => ({
+      account_id: accountId,
+      brand_name: c.brand_name.trim(),
+      domain:     c.domain?.trim() || null,
+      is_client:  false,
+      channels: {
+        instagram: c.instagram ? { handle: c.instagram.replace('@', '') } : null,
+        amazon:    c.amazon_brand ? { brand_name: c.amazon_brand } : null,
+      },
+      category:  c.category ?? accountCategory ?? null,
+      is_paused: false,
+    }))
+
+  if (toInsert.length === 0) {
+    return NextResponse.json({ inserted: 0, skipped: competitors.length })
+  }
+
+  const { error: insertErr } = await db.from('brands').insert(toInsert)
+  if (insertErr) return NextResponse.json({ error: insertErr.message }, { status: 500 })
+
+  return NextResponse.json({
+    inserted: toInsert.length,
+    skipped:  competitors.length - toInsert.length,
+  })
+}

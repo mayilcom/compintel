@@ -1,0 +1,21 @@
+{
+  "name": "@mayil/emails",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "scripts": {
+    "dev": "email dev --dir src --port 3001",
+    "build": "email export --outDir dist",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@react-email/components": "^0.0.33",
+    "@react-email/render": "^1.0.5",
+    "react": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19",
+    "react-email": "^4.0.10",
+    "typescript": "^5"
+  }
+}

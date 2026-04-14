@@ -1,0 +1,29 @@
+{
+  "name": "@mayil/workers",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "collector":      "tsx src/workers/collector.ts",
+    "differ":         "tsx src/workers/differ.ts",
+    "signal-ranker":  "tsx src/workers/signal-ranker.ts",
+    "ai-interpreter": "tsx src/workers/ai-interpreter.ts",
+    "assembler":      "tsx src/workers/brief-assembler.ts",
+    "delivery":       "tsx src/workers/delivery.ts",
+    "typecheck":      "tsc --noEmit"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.40.0",
+    "@mayil/emails": "file:../emails",
+    "@react-email/render": "^1.0.5",
+    "@supabase/supabase-js": "^2.49.4",
+    "apify-client": "^2.12.0",
+    "react": "^19.0.0",
+    "resend": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "tsx": "^4.19.0",
+    "typescript": "^5"
+  }
+}
