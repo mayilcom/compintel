@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { createServiceClient } from '@/lib/supabase/server'
 import { LookupManager } from '@/components/admin/lookup-manager'
 import type { BrandLookupRow } from '@/components/admin/lookup-manager'

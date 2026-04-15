@@ -5,6 +5,16 @@ Format: `[version] YYYY-MM-DD — Description`
 
 ---
 
+## [0.1.10] 2026-04-15 — Force dynamic rendering on all data-fetching pages
+
+### Fixed
+
+Added `export const dynamic = 'force-dynamic'` to all 9 server component pages that query Supabase or Clerk at request time. Without this, Next.js attempts to prerender them at build time — failing because env vars (Supabase URL/key, Clerk key) are runtime secrets not available during the Vercel build phase.
+
+Pages fixed: `admin/accounts`, `admin/lookup`, `app/briefs`, `app/briefs/[brief_id]`, `app/dashboard`, `app/settings/channels`, `app/settings/subscription`, `app/settings/team`, `brief/[brief_id]`.
+
+---
+
 ## [0.1.9] 2026-04-14 — Build fixes (TypeScript + Turbopack errors)
 
 ### Fixed
