@@ -5,6 +5,55 @@ Format: `[version] YYYY-MM-DD — Description`
 
 ---
 
+## [0.1.17] 2026-04-15 — Enforce documentation: Stop hook + git pre-commit guard
+
+### Added
+
+- **`.claude/hooks/stop.js`** — `Stop` hook that fires when Claude finishes responding. Checks `git diff --name-only HEAD` for uncommitted source files. If source files changed but `CHANGELOG.md` was not touched, it **writes a `[DRAFT]` skeleton entry directly into `CHANGELOG.md`** — no Claude cooperation required. The draft lists every changed file; Claude or the user replaces it with a proper description. A `systemMessage` is shown so Claude sees what was written.
+
+- **`.claude/hooks/pre-compact.js`** — `PreCompact` hook (both `auto` and `manual`) that fires just before context is compacted. Injects `additionalContext` listing changed source files and whether CHANGELOG was updated. Last-chance reminder before the session context is squashed.
+
+- **`scripts/hooks/pre-commit`** — Git `pre-commit` hook script. Blocks `git commit` if `.ts`/`.tsx`/`.sql`/`.css` files are staged but `docs/changelog/CHANGELOG.md` is not. Completely independent of Claude Code — enforces at commit time regardless of how the commit is made. Bypass with `--no-verify` in emergencies.
+
+- **`scripts/hooks/install.js`** — One-time installer: copies `scripts/hooks/pre-commit` → `.git/hooks/pre-commit`, backs up any existing hook, sets executable permissions.
+
+### Why
+
+The previous `PostToolUse` reminder approach (`auto-doc.js`) only injects `additionalContext` — text Claude reads but isn't forced to act on. If Claude defers the reminder to finish a task and compaction fires first, the context is lost with no documentation written.
+
+The new three-layer enforcement:
+
+| Layer | When | What it does |
+|---|---|---|
+| `PostToolUse` (existing) | After every file write | Soft reminder with relevant arch docs |
+| `Stop` hook (new) | When Claude stops | **Writes draft to CHANGELOG.md automatically** |
+| `PreCompact` hook (new) | Before context squash | Strong reminder with changed file list |
+| `pre-commit` git hook (new) | On `git commit` | **Blocks commit** if CHANGELOG not staged |
+
+The `Stop` hook and `pre-commit` hook do not rely on Claude — they enforce the requirement mechanically.
+
+---
+
+## [0.1.16] 2026-04-15 — Platform picker for onboarding + Settings → Brands & competitors
+
+### Changed
+
+- **Onboarding → Brand** (`src/app/onboarding/brand/page.tsx`) — replaced four flat channel-handle fields (Instagram, YouTube, LinkedIn, Facebook) with a platform picker. Platforms display as selectable pills; defaults are auto-selected based on the chosen business type (B2C → Instagram, Facebook, YouTube, Amazon; B2B → YouTube, LinkedIn; Global → Instagram, LinkedIn, YouTube). User can toggle any platform on/off. Handle inputs appear only for selected platforms. Uses `src/lib/platforms.ts` for all platform logic.
+- **Onboarding → Competitors** (`src/app/onboarding/competitors/page.tsx`) — removed the brand search bar (DB/LLM lookup is not yet wired up; showing an empty search would be confusing). The "Add competitor" form is now always open and is the primary interface. Each competitor gets a platform picker + per-platform handle fields. Form resets after add but stays open so multiple competitors can be added without extra clicks.
+
+### Added
+
+- **Settings → Brands & competitors** (`src/app/app/settings/competitors/page.tsx`) — new settings page. Shows the client brand and all competitor brands, each with a "Edit channels" inline form (platform picker + handle inputs). Competitors can be removed. New competitors can be added via an "+ Add competitor" form at the top.
+- `src/app/api/settings/brands/route.ts` — `GET /api/settings/brands`: returns all brands (client + competitors) for the account.
+- `src/app/api/settings/brands/[brand_id]/route.ts` — `PATCH /api/settings/brands/:id`: updates `brands.channels` from `{ selectedPlatforms, handles }` using `buildChannels()`. `DELETE /api/settings/brands/:id`: removes a competitor brand; client brands (`is_client=true`) are protected.
+- **Settings nav** (`src/app/app/settings/layout.tsx`) — added "Brands & competitors" between Team and Connected channels.
+
+### Why
+
+Users had no way to edit channel handles or add/remove competitors after onboarding. The flat-field approach also didn't communicate which platforms are relevant for B2C vs B2B brands. The platform picker solves both: it guides users to the right defaults and is reused consistently across onboarding and settings.
+
+---
+
 ## [0.1.15] 2026-04-15 — Security: enable RLS on differ_results, ninjapear_cache, competitor_suggestions
 
 ### Fixed

@@ -87,7 +87,7 @@ src/
 │   │   ├── layout.tsx              Sticky nav
 │   │   ├── dashboard/
 │   │   ├── briefs/[brief_id]/
-│   │   └── settings/               profile/team/channels/recipients/delivery/subscription
+│   │   └── settings/               profile/team/competitors/channels/recipients/delivery/subscription
 │   ├── admin/                      Internal admin (cookie auth)
 │   │   ├── layout.tsx
 │   │   ├── login/
@@ -95,21 +95,44 @@ src/
 │   │   ├── accounts/
 │   │   └── lookup/                 Brand lookup table editor
 │   ├── brief/[brief_id]/           Public brief (no auth, for email recipients)
-│   └── upgrade/                    Upgrade wall (?reason=competitors|recipients|channels|seats)
+│   ├── upgrade/                    Upgrade wall (?reason=competitors|recipients|channels|seats)
+│   └── api/
+│       ├── checkout/               Razorpay + Stripe checkout session creation
+│       ├── geo/country/            IP → country code (Vercel x-vercel-ip-country header)
+│       ├── unsubscribe/            Brief unsubscribe link handler
+│       ├── webhooks/               Clerk, Razorpay, Stripe
+│       ├── admin/                  Lookup CRUD
+│       ├── suggestions/[id]/       Accept/dismiss NinjaPear competitor suggestions
+│       ├── onboarding/             brand, competitors/search, competitors/save, complete
+│       └── settings/               profile, recipients, recipients/[id], delivery,
+│                                   subscription, team, brands, brands/[brand_id]
 ├── components/
 │   ├── ui/                         Button, Badge, Card (shadcn copies)
 │   ├── app-nav.tsx                 Top nav (Dashboard / Briefs / Settings)
-│   ├── dashboard/                  WeeklyStatusCard, CompetitorTable
-│   └── onboarding/                 ProgressBar
+│   ├── brief/signal-card.tsx       Shared signal card (public + app brief pages)
+│   ├── dashboard/                  WeeklyStatusCard, CompetitorTable, CompetitorSuggestions
+│   ├── onboarding/                 ProgressBar
+│   ├── settings/team-invite-form.tsx
+│   └── upgrade/plan-cards.tsx
 ├── lib/
 │   ├── utils.ts                    cn(), formatCurrency(), PLAN_LIMITS, SIGNAL_LABELS
+│   ├── platforms.ts                PLATFORMS list, defaultPlatformsFor(), buildChannels(),
+│   │                               parseChannels(), extractHandle() — single source of truth
+│   │                               for platform/channel definitions used in onboarding + settings
 │   └── supabase/
-│       ├── client.ts               Browser client
+│       ├── client.ts               Browser client (createBrowserClient)
 │       └── server.ts               Server client + service-role client
 └── proxy.ts                        Clerk middleware (Next.js 16 convention)
 
+apps/
+├── emails/                         React Email templates (BriefFull, BriefDigest, BriefChannel)
+└── workers/
+    ├── src/workers/                6-stage pipeline + enrichment worker
+    ├── src/lib/                    Shared types, Supabase client, unsubscribe util
+    └── railway.toml                Railway deployment config (7 services)
+
 supabase/
-└── migrations/001_initial_schema.sql
+└── migrations/                     001–008 SQL migrations
 
 docs/
 ├── README.md
@@ -180,7 +203,7 @@ ADMIN_PASSWORD_HASH
 
 ## What's pending (next build sessions)
 
-1. **Onboarding competitor step** — wire brand_lookup fuzzy search (`find_similar_brand` Postgres function) to the onboarding competitor discovery UI (currently shows mock data)
-2. **Settings channels** — OAuth connect flow for Google Ads, Meta, Instagram, LinkedIn
-3. **App briefs list + detail pages** — `/app/briefs` and `/app/briefs/[id]` connected to real briefs + signals (currently placeholders)
-4. **Railway service creation** — create 6 services in Railway dashboard pointing to `apps/workers/` with correct `WORKER_NAME` env vars and cron schedules (config is in `apps/workers/railway.toml`)
+1. **Onboarding competitor search** — search bar was removed (empty DB would confuse users). Re-add once `brand_lookup` table is populated; wire `find_similar_brand` Postgres RPC at threshold 0.25. The manual-form-first approach stays as fallback.
+2. **Settings channels** — OAuth connect flow for Google Ads, Meta, Instagram, LinkedIn (currently shows placeholder "Connect" buttons)
+3. **App briefs list + detail pages** — `/app/briefs` and `/app/briefs/[id]` are connected to real data but need real brief content to test end-to-end
+4. **Railway service creation** — create 7 services in Railway dashboard pointing to `apps/workers/` with correct `WORKER_NAME` env vars and cron schedules (config is in `apps/workers/railway.toml`)

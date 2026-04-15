@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { OnboardingProgress } from '@/components/onboarding/progress-bar'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { PLATFORMS, defaultPlatformsFor, buildChannels } from '@/lib/platforms'
 
 const CATEGORIES = ['FMCG', 'Fashion / D2C', 'SaaS / B2B', 'Retail', 'Other']
 const MARKETS    = ['B2C', 'B2B', 'Global']
@@ -33,37 +34,19 @@ const COUNTRIES = [
   { code: 'OTHER', name: 'Other' },
 ]
 
-/** Strip URL boilerplate and @ so we store only the raw handle */
-function extractHandle(input: string, platform: 'instagram' | 'linkedin' | 'youtube' | 'facebook'): string {
-  const s = input.trim()
-  if (!s) return ''
-  const patterns: Record<string, RegExp> = {
-    instagram: /(?:instagram\.com\/)([A-Za-z0-9_.]+)/,
-    linkedin:  /(?:linkedin\.com\/company\/)([A-Za-z0-9_-]+)/,
-    youtube:   /(?:youtube\.com\/(?:@|c\/|channel\/|user\/))([A-Za-z0-9_.-]+)/,
-    facebook:  /(?:facebook\.com\/)([A-Za-z0-9_.]+)/,
-  }
-  const match = s.match(patterns[platform])
-  if (match) return match[1]
-  return s.replace(/^@/, '').split('/')[0]
-}
-
 export default function OnboardingBrandPage() {
   const router = useRouter()
 
-  const [brandName, setBrandName]   = useState('')
-  const [domain, setDomain]         = useState('')
-  const [category, setCategory]     = useState('')
-  const [market, setMarket]         = useState('')
-  const [country, setCountry]       = useState('')
-  const [geoLoading, setGeoLoading] = useState(true)
-  // Channel handles
-  const [instagram, setInstagram]   = useState('')
-  const [youtube, setYoutube]       = useState('')
-  const [linkedin, setLinkedin]     = useState('')
-  const [facebook, setFacebook]     = useState('')
-  const [isLoading, setIsLoading]   = useState(false)
-  const [error, setError]           = useState<string | null>(null)
+  const [brandName, setBrandName]         = useState('')
+  const [domain, setDomain]               = useState('')
+  const [category, setCategory]           = useState('')
+  const [market, setMarket]               = useState('')
+  const [country, setCountry]             = useState('')
+  const [geoLoading, setGeoLoading]       = useState(true)
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([])
+  const [handles, setHandles]             = useState<Record<string, string>>({})
+  const [isLoading, setIsLoading]         = useState(false)
+  const [error, setError]                 = useState<string | null>(null)
 
   // Auto-detect country from IP on mount
   useEffect(() => {
@@ -76,20 +59,20 @@ export default function OnboardingBrandPage() {
       .finally(() => setGeoLoading(false))
   }, [])
 
-  const canContinue = brandName.trim() && category && market && country
+  // Auto-select platform defaults when market changes
+  useEffect(() => {
+    if (market) {
+      setSelectedPlatforms(defaultPlatformsFor(market))
+    }
+  }, [market])
 
-  function buildChannels() {
-    const ch: Record<string, { handle?: string }> = {}
-    const ig = extractHandle(instagram, 'instagram')
-    const yt = extractHandle(youtube,   'youtube')
-    const li = extractHandle(linkedin,  'linkedin')
-    const fb = extractHandle(facebook,  'facebook')
-    if (ig) ch.instagram = { handle: ig }
-    if (yt) ch.youtube   = { handle: yt }
-    if (li) ch.linkedin  = { handle: li }
-    if (fb) ch.meta_ads  = { handle: fb }
-    return ch
+  function togglePlatform(id: string) {
+    setSelectedPlatforms(prev =>
+      prev.includes(id) ? prev.filter(p => p !== id) : [...prev, id]
+    )
   }
+
+  const canContinue = brandName.trim() && category && market && country
 
   async function handleContinue() {
     if (!canContinue) return
@@ -106,7 +89,7 @@ export default function OnboardingBrandPage() {
           category,
           market,
           country,
-          channels:   buildChannels(),
+          channels:   buildChannels(selectedPlatforms, handles),
         }),
       })
 
@@ -160,9 +143,6 @@ export default function OnboardingBrandPage() {
               onChange={(e) => setDomain(e.target.value)}
               className="h-10 rounded-[8px] border border-border bg-surface px-3 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-gold/30 transition-shadow"
             />
-            <p className="text-[11px] text-muted">
-              Helps us find your Instagram, YouTube, and LinkedIn handles automatically.
-            </p>
           </div>
 
           {/* Category */}
@@ -235,59 +215,54 @@ export default function OnboardingBrandPage() {
           <div className="border-t border-border pt-5 flex flex-col gap-4">
             <div>
               <p className="label-section">
-                Channel handles{' '}
-                <span className="normal-case font-normal text-muted">(optional — paste handle or full URL)</span>
+                Channels to track
+                <span className="ml-1.5 normal-case font-normal text-muted">(optional — add what you have, edit anytime in Settings)</span>
               </p>
-              <p className="mt-1 text-[11px] text-muted">
-                We collect your brand&apos;s public data each week from these. Add what you have; edit anytime in Settings.
-              </p>
+              {market && (
+                <p className="mt-1 text-[11px] text-muted">
+                  Defaults set for {market}. Toggle to add or remove platforms.
+                </p>
+              )}
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[11px] text-muted font-medium">Instagram</label>
-                <input
-                  type="text"
-                  placeholder="@yourbrand or instagram.com/…"
-                  value={instagram}
-                  onChange={(e) => setInstagram(e.target.value)}
-                  className="h-9 rounded-[8px] border border-border bg-surface px-3 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-gold/30"
-                />
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[11px] text-muted font-medium">YouTube</label>
-                <input
-                  type="text"
-                  placeholder="youtube.com/@yourchannel"
-                  value={youtube}
-                  onChange={(e) => setYoutube(e.target.value)}
-                  className="h-9 rounded-[8px] border border-border bg-surface px-3 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-gold/30"
-                />
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[11px] text-muted font-medium">LinkedIn company</label>
-                <input
-                  type="text"
-                  placeholder="linkedin.com/company/…"
-                  value={linkedin}
-                  onChange={(e) => setLinkedin(e.target.value)}
-                  className="h-9 rounded-[8px] border border-border bg-surface px-3 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-gold/30"
-                />
-              </div>
-
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[11px] text-muted font-medium">Facebook page</label>
-                <input
-                  type="text"
-                  placeholder="facebook.com/yourbrand"
-                  value={facebook}
-                  onChange={(e) => setFacebook(e.target.value)}
-                  className="h-9 rounded-[8px] border border-border bg-surface px-3 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-gold/30"
-                />
-              </div>
+            {/* Platform pills */}
+            <div className="flex flex-wrap gap-2">
+              {PLATFORMS.map((p) => {
+                const isSelected = selectedPlatforms.includes(p.id)
+                return (
+                  <button
+                    key={p.id}
+                    type="button"
+                    onClick={() => togglePlatform(p.id)}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
+                      isSelected
+                        ? 'border-gold bg-gold-bg text-gold-dark'
+                        : 'border-border bg-surface text-muted hover:border-gold hover:text-gold-dark hover:bg-gold-bg'
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                )
+              })}
             </div>
+
+            {/* Handle inputs for selected platforms */}
+            {selectedPlatforms.length > 0 && (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {PLATFORMS.filter(p => selectedPlatforms.includes(p.id)).map((p) => (
+                  <div key={p.id} className="flex flex-col gap-1.5">
+                    <label className="text-[11px] text-muted font-medium">{p.label}</label>
+                    <input
+                      type="text"
+                      placeholder={p.placeholder}
+                      value={handles[p.id] ?? ''}
+                      onChange={(e) => setHandles(prev => ({ ...prev, [p.id]: e.target.value }))}
+                      className="h-9 rounded-[8px] border border-border bg-surface px-3 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-gold/30"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {error && <p className="text-[12px] text-threat">{error}</p>}

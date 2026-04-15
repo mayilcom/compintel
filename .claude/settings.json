@@ -11,6 +11,39 @@
           }
         ]
       }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node C:/Users/beemy/Mayil/.claude/hooks/stop.js",
+            "statusMessage": "Writing draft changelog if needed…"
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "matcher": "auto",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node C:/Users/beemy/Mayil/.claude/hooks/pre-compact.js",
+            "statusMessage": "Checking docs before compaction…"
+          }
+        ]
+      },
+      {
+        "matcher": "manual",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node C:/Users/beemy/Mayil/.claude/hooks/pre-compact.js",
+            "statusMessage": "Checking docs before compaction…"
+          }
+        ]
+      }
     ]
   }
 }

@@ -1,6 +1,6 @@
 # Mayil — Architecture Overview
 
-**Last updated:** 2026-04-14  
+**Last updated:** 2026-04-15  
 **Status:** V1 Production
 
 ---
@@ -30,8 +30,9 @@ Mayil is a B2B SaaS that delivers a weekly competitive intelligence brief every 
 │                  recipients → done                              │
 │  /app/dashboard  Weekly status card + competitor table          │
 │  /app/briefs     Brief archive + brief detail                   │
-│  /app/settings/* Profile, team, channels, recipients,          │
-│                  delivery, subscription                         │
+│  /app/settings/* Profile, team, competitors (brands +           │
+│                  channel handles), channels (OAuth),            │
+│                  recipients, delivery, subscription             │
 │  /upgrade        Plan selection + Razorpay/Stripe checkout      │
 │  /admin/*        Internal tools (cookie-auth)                   │
 │  /brief/:id      Public brief (no auth, for email recipients)   │
@@ -91,28 +92,32 @@ src/
 │   │   ├── layout.tsx              Sticky nav
 │   │   ├── dashboard/
 │   │   ├── briefs/[brief_id]/
-│   │   └── settings/               profile/team/channels/recipients/delivery/subscription
+│   │   └── settings/               profile/team/competitors/channels/recipients/delivery/subscription
 │   ├── admin/                      Internal admin (cookie auth)
 │   ├── brief/[brief_id]/           Public brief (no auth)
 │   ├── upgrade/                    Upgrade wall (Razorpay/Stripe checkout)
 │   └── api/
 │       ├── checkout/               Razorpay + Stripe checkout session creation
-│       ├── geo/                    IP → gateway/currency detection
+│       ├── geo/country/            IP → country code (Vercel x-vercel-ip-country header)
 │       ├── unsubscribe/            Brief unsubscribe link handler
 │       ├── webhooks/               Clerk, Razorpay, Stripe
 │       ├── admin/                  Lookup CRUD
+│       ├── suggestions/[id]/       Accept/dismiss NinjaPear competitor suggestions
 │       ├── onboarding/             brand, competitors/search, competitors/save, complete
-│       └── settings/               profile, recipients, delivery, subscription, team
+│       └── settings/               profile, recipients, recipients/[id], delivery,
+│                                   subscription, team, brands, brands/[brand_id]
 ├── components/
 │   ├── ui/                         Button, Badge, Card (shadcn copies)
 │   ├── app-nav.tsx                 Top nav
 │   ├── brief/signal-card.tsx       Shared signal card (public + app brief pages)
-│   ├── dashboard/                  WeeklyStatusCard, CompetitorTable
+│   ├── dashboard/                  WeeklyStatusCard, CompetitorTable, CompetitorSuggestions
 │   ├── onboarding/                 ProgressBar
 │   ├── settings/team-invite-form.tsx
 │   └── upgrade/plan-cards.tsx
 ├── lib/
 │   ├── utils.ts                    cn(), formatCurrency(), PLAN_LIMITS, SIGNAL_LABELS
+│   ├── platforms.ts                PLATFORMS list + helpers (defaultPlatformsFor,
+│   │                               buildChannels, parseChannels, extractHandle)
 │   └── supabase/
 │       ├── client.ts               Browser client (createBrowserClient)
 │       └── server.ts               Server client + service-role client
@@ -121,12 +126,12 @@ src/
 apps/
 ├── emails/                         React Email templates (BriefFull, BriefDigest, BriefChannel)
 └── workers/
-    ├── src/workers/                6-stage pipeline workers
+    ├── src/workers/                6-stage pipeline + enrichment worker (7 total)
     ├── src/lib/                    Shared types, Supabase client, unsubscribe util
-    └── railway.toml                Railway deployment config
+    └── railway.toml                Railway deployment config (7 services)
 
 supabase/
-└── migrations/                     001–005 SQL migrations
+└── migrations/                     001–008 SQL migrations
 
 docs/
 ├── architecture/

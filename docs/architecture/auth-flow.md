@@ -43,7 +43,7 @@ Five steps: `brand → competitors → channels → recipients → done`
 
 | Step | Page | API call on Continue |
 |------|------|---------------------|
-| 1 | `/onboarding/brand` | `POST /api/onboarding/brand` — upserts client brand, sets account.category + market |
+| 1 | `/onboarding/brand` | `POST /api/onboarding/brand` — upserts client brand, sets account.category, market, country + brands.channels |
 | 2 | `/onboarding/competitors` | `POST /api/onboarding/competitors/save` — inserts confirmed competitor brands |
 | 3 | `/onboarding/channels` | Navigation only (OAuth connect deferred to V2) |
 | 4 | `/onboarding/recipients` | `POST /api/settings/recipients` for each added recipient |

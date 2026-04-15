@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils'
 const SETTINGS_NAV = [
   { label: 'Profile',               href: '/app/settings/profile' },
   { label: 'Team',                  href: '/app/settings/team' },
+  { label: 'Brands & competitors',  href: '/app/settings/competitors' },
   { label: 'Connected channels',    href: '/app/settings/channels' },
   { label: 'Recipients',            href: '/app/settings/recipients' },
   { label: 'Delivery preferences',  href: '/app/settings/delivery' },
