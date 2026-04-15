@@ -1,50 +1,108 @@
+export const dynamic = 'force-dynamic'
+
+import { notFound } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
+import { createServiceClient } from '@/lib/supabase/server'
 import Link from 'next/link'
 
 export const metadata = { title: 'Edit Brief — Admin' }
 
-// In production: fetch brief + signals from Supabase using service role key
-export default function AdminBriefEditorPage({
+function weekRangeLabel(weekStart: string): string {
+  const start = new Date(weekStart)
+  const end   = new Date(weekStart)
+  end.setUTCDate(end.getUTCDate() + 6)
+  const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' }
+  return `${start.toLocaleDateString('en-IN', opts)}–${end.toLocaleDateString('en-IN', { day: 'numeric', year: 'numeric' })}`
+}
+
+export default async function AdminBriefEditorPage({
   params,
 }: {
-  params: { brief_id: string }
+  params: Promise<{ brief_id: string }>
 }) {
-  const brief = {
-    id: params.brief_id,
-    accountName: 'Sunfeast / ITC',
-    issueNumber: 12,
-    weekRange: 'Apr 14–20, 2026',
-    headline: 'Britannia broke its silence — 14 posts in 4 days before Onam',
-    closingQuestion:
-      'Oreo has a Diwali gifting pack running in Meta ads since Sep 3. Britannia has a health-gifting angle timed before Onam. Does Dark Fantasy have a festive gifting strategy for Q3?',
-    status: 'assembled',
-    signals: [
-      {
-        id: 'sig_001',
-        type: 'threat',
-        channel: 'Instagram',
-        competitor: 'Britannia',
-        headline: 'Britannia posted 14 times in 4 days — 178% above their 4-week average',
-        body: 'All NutriChoice. Story views up 3.1×. 4 paid partnership posts with health influencers in the 100K–500K tier. Activity started Sep 3, two weeks before Onam.',
-        implication:
-          "Sunfeast's Farmlite has no visible Onam content. If Britannia is buying shelf space two weeks before the festival, Farmlite is already behind.",
-        score: 92,
-      },
-      {
-        id: 'sig_002',
-        type: 'opportunity',
-        channel: 'Amazon',
-        competitor: 'Parle-G',
-        headline: "Parle-G's Amazon rating dropped to 4.1 — 47 packaging complaints this week",
-        body: 'Down from 4.3 three weeks ago. Complaints concentrated on Blinkit and Swiggy Instamart fulfilment.',
-        implication:
-          'Sunfeast has a packaging quality window on quick commerce. A sampling campaign on Blinkit this month reaches consumers who just had a bad Parle experience.',
-        score: 78,
-      },
-    ],
+  const { brief_id } = await params
+  const db = createServiceClient()
+
+  // ── Fetch brief ────────────────────────────────────────────
+  const { data: briefRaw, error: briefError } = await db
+    .from('briefs')
+    .select('brief_id, account_id, week_start, issue_number, headline, closing_question, signal_ids, status')
+    .eq('brief_id', brief_id)
+    .single()
+
+  if (briefError || !briefRaw) notFound()
+
+  const brief = briefRaw as {
+    brief_id: string
+    account_id: string
+    week_start: string
+    issue_number: number
+    headline: string | null
+    closing_question: string | null
+    signal_ids: string[]
+    status: string
   }
+
+  // ── Fetch account ──────────────────────────────────────────
+  const { data: accountRaw } = await db
+    .from('accounts')
+    .select('email, company_name')
+    .eq('account_id', brief.account_id)
+    .single()
+
+  const account = accountRaw as { email: string; company_name: string | null } | null
+  const accountLabel = account?.company_name ?? account?.email ?? brief.account_id
+
+  // ── Fetch signals ──────────────────────────────────────────
+  const signalIds = brief.signal_ids ?? []
+
+  type SignalRow = {
+    signal_id: string
+    brand_id: string
+    signal_type: string
+    channel: string
+    headline: string
+    body: string
+    implication: string
+    confidence: number
+  }
+
+  const signals: SignalRow[] = []
+  const brandNameMap = new Map<string, string>()
+
+  if (signalIds.length > 0) {
+    const { data: signalRows, error: signalError } = await db
+      .from('signals')
+      .select('signal_id, brand_id, signal_type, channel, headline, body, implication, confidence')
+      .in('signal_id', signalIds)
+
+    if (signalError) {
+      console.error('[admin-brief] failed to fetch signals:', signalError)
+    } else if (signalRows) {
+      signals.push(...(signalRows as SignalRow[]))
+
+      // Fetch brand names for all brands referenced in these signals
+      const brandIds = [...new Set(signalRows.map((s: SignalRow) => s.brand_id))]
+      const { data: brandRows, error: brandError } = await db
+        .from('brands')
+        .select('brand_id, brand_name')
+        .in('brand_id', brandIds)
+
+      if (brandError) {
+        console.error('[admin-brief] failed to fetch brands:', brandError)
+      } else if (brandRows) {
+        for (const b of brandRows as { brand_id: string; brand_name: string }[]) {
+          brandNameMap.set(b.brand_id, b.brand_name)
+        }
+      }
+    }
+  }
+
+  // Order signals to match signal_ids order from brief
+  const signalOrder = new Map(signalIds.map((id, i) => [id, i]))
+  signals.sort((a, b) => (signalOrder.get(a.signal_id) ?? 99) - (signalOrder.get(b.signal_id) ?? 99))
 
   return (
     <div className="flex flex-col gap-6 max-w-2xl">
@@ -57,9 +115,9 @@ export default function AdminBriefEditorPage({
             </Link>
           </div>
           <h1 className="font-display text-xl text-ink">
-            Brief #{brief.issueNumber} — {brief.accountName}
+            Brief #{brief.issue_number} — {accountLabel}
           </h1>
-          <p className="text-[13px] text-muted">{brief.weekRange}</p>
+          <p className="text-[13px] text-muted">{weekRangeLabel(brief.week_start)}</p>
         </div>
         <div className="flex items-center gap-2">
           <Badge
@@ -84,7 +142,7 @@ export default function AdminBriefEditorPage({
           <div className="flex flex-col gap-1.5">
             <label className="label-section">Brief headline</label>
             <textarea
-              defaultValue={brief.headline}
+              defaultValue={brief.headline ?? ''}
               rows={2}
               className="rounded-[8px] border border-border bg-surface px-3 py-2 text-sm text-ink resize-none focus:outline-none focus:ring-2 focus:ring-gold/30"
             />
@@ -92,7 +150,7 @@ export default function AdminBriefEditorPage({
           <div className="flex flex-col gap-1.5">
             <label className="label-section">Closing question</label>
             <textarea
-              defaultValue={brief.closingQuestion}
+              defaultValue={brief.closing_question ?? ''}
               rows={3}
               className="rounded-[8px] border border-border bg-surface px-3 py-2 text-sm text-ink resize-none focus:outline-none focus:ring-2 focus:ring-gold/30"
             />
@@ -103,22 +161,29 @@ export default function AdminBriefEditorPage({
       {/* Signals */}
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-          <p className="label-section">Signals ({brief.signals.length})</p>
+          <p className="label-section">Signals ({signals.length})</p>
           <Button size="sm" variant="outline">+ Add signal</Button>
         </div>
-        {brief.signals.map((signal) => (
-          <Card key={signal.id}>
+        {signals.length === 0 && (
+          <p className="text-[13px] text-muted">No signals attached to this brief.</p>
+        )}
+        {signals.map((signal) => (
+          <Card key={signal.signal_id}>
             <CardContent className="p-5 flex flex-col gap-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <Badge
-                    variant={signal.type as 'threat' | 'opportunity' | 'watch' | 'trend'}
+                    variant={signal.signal_type as 'threat' | 'opportunity' | 'watch' | 'trend'}
                     className="text-[10px]"
                   >
-                    {signal.type}
+                    {signal.signal_type}
                   </Badge>
-                  <span className="text-[11px] text-muted">{signal.channel} · {signal.competitor}</span>
-                  <span className="text-[11px] font-mono text-muted">score: {signal.score}</span>
+                  <span className="text-[11px] text-muted">
+                    {signal.channel} · {brandNameMap.get(signal.brand_id) ?? signal.brand_id}
+                  </span>
+                  <span className="text-[11px] font-mono text-muted">
+                    score: {Math.round(signal.confidence * 100)}
+                  </span>
                 </div>
                 <button className="text-[11px] text-muted hover:text-threat transition-colors">
                   Remove

@@ -2,6 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { notFound } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
+import { normalizeSources } from '@/lib/utils'
 import { SignalCard } from '@/components/brief/signal-card'
 import type { SignalCardData } from '@/components/brief/signal-card'
 
@@ -16,15 +17,16 @@ function weekRangeLabel(weekStart: string): string {
 export default async function PublicBriefPage({
   params,
 }: {
-  params: { brief_id: string }
+  params: Promise<{ brief_id: string }>
 }) {
+  const { brief_id } = await params
   const db = createServiceClient()
 
   // Only expose sent briefs publicly
   const { data: brief, error: briefErr } = await db
     .from('briefs')
     .select('*')
-    .eq('brief_id', params.brief_id)
+    .eq('brief_id', brief_id)
     .eq('status', 'sent')
     .single()
 
@@ -49,7 +51,7 @@ export default async function PublicBriefPage({
       .from('signals')
       .select('signal_id, signal_type, channel, headline, body, implication, sources, brands(brand_name)')
       .in('signal_id', signalIds)
-      .order('score', { ascending: false })
+      .order('confidence', { ascending: false })
 
     if (sigRows) {
       for (const s of sigRows as Array<Record<string, unknown>>) {
@@ -61,7 +63,7 @@ export default async function PublicBriefPage({
           headline:        s.headline as string,
           body:            s.body as string,
           implication:     s.implication as string | null,
-          sources:         (s.sources as string[]) ?? [],
+          sources:         normalizeSources(s.sources),
         })
       }
     }

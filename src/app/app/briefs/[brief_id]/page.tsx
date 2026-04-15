@@ -5,6 +5,7 @@ import { redirect, notFound } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { createServiceClient } from '@/lib/supabase/server'
+import { normalizeSources } from '@/lib/utils'
 import { SignalCard } from '@/components/brief/signal-card'
 import type { SignalCardData } from '@/components/brief/signal-card'
 
@@ -21,8 +22,9 @@ function weekRangeLabel(weekStart: string): string {
 export default async function BriefDetailPage({
   params,
 }: {
-  params: { brief_id: string }
+  params: Promise<{ brief_id: string }>
 }) {
+  const { brief_id } = await params
   const { userId } = await auth()
   if (!userId) redirect('/sign-in')
 
@@ -42,7 +44,7 @@ export default async function BriefDetailPage({
   const { data: brief } = await db
     .from('briefs')
     .select('*')
-    .eq('brief_id', params.brief_id)
+    .eq('brief_id', brief_id)
     .eq('account_id', accountId)
     .single()
 
@@ -71,7 +73,7 @@ export default async function BriefDetailPage({
       .from('signals')
       .select('signal_id, signal_type, channel, headline, body, implication, sources, brands(brand_name)')
       .in('signal_id', signalIds)
-      .order('score', { ascending: false })
+      .order('confidence', { ascending: false })
 
     if (sigRows) {
       for (const s of sigRows as Array<Record<string, unknown>>) {
@@ -83,7 +85,7 @@ export default async function BriefDetailPage({
           headline:        s.headline as string,
           body:            s.body as string,
           implication:     s.implication as string | null,
-          sources:         (s.sources as string[]) ?? [],
+          sources:         normalizeSources(s.sources),
         })
       }
     }

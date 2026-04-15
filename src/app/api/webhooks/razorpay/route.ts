@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createHmac, timingSafeEqual } from 'crypto'
-import { createClient } from '@supabase/supabase-js'
+import { createServiceClient } from '@/lib/supabase/server'
 
 // ── Signature verification ────────────────────────────────────
 // Razorpay signs the raw body with HMAC-SHA256 using the webhook secret.
@@ -23,13 +23,6 @@ function verifySignature(rawBody: string, signature: string): boolean {
   }
 }
 
-function serviceSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { persistSession: false } }
-  )
-}
 
 // ── Route handler ─────────────────────────────────────────────
 export async function POST(req: NextRequest): Promise<NextResponse> {
@@ -56,7 +49,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
   const eventType = event.event as string
   const payload   = event.payload as Record<string, unknown>
 
-  const supabase = serviceSupabase()
+  const supabase = createServiceClient()
 
   try {
     switch (eventType) {

@@ -55,29 +55,35 @@ export default async function DashboardPage() {
   const accountId = (account as Record<string, unknown>).account_id as string
 
   // ── This week's brief ────────────────────────────────────────
-  const { data: brief } = await db
+  const { data: brief, error: briefError } = await db
     .from('briefs')
     .select('brief_id, status, issue_number, signal_ids, sent_at, is_baseline')
     .eq('account_id', accountId)
     .eq('week_start', weekStart)
     .maybeSingle()
 
+  if (briefError) console.error('[dashboard] briefs query failed:', briefError)
+
   const b = brief as Record<string, unknown> | null
 
   // ── Signal count for this week ───────────────────────────────
-  const { count: signalCount } = await db
+  const { count: signalCount, error: signalCountError } = await db
     .from('signals')
     .select('signal_id', { count: 'exact', head: true })
     .eq('account_id', accountId)
     .eq('week_start', weekStart)
     .eq('selected_for_brief', true)
 
+  if (signalCountError) console.error('[dashboard] signal count query failed:', signalCountError)
+
   // ── Check if first brief ─────────────────────────────────────
-  const { count: sentBriefCount } = await db
+  const { count: sentBriefCount, error: sentBriefError } = await db
     .from('briefs')
     .select('brief_id', { count: 'exact', head: true })
     .eq('account_id', accountId)
     .eq('status', 'sent')
+
+  if (sentBriefError) console.error('[dashboard] sent brief count query failed:', sentBriefError)
 
   const isFirstBrief = (sentBriefCount ?? 0) === 0
 
@@ -89,7 +95,7 @@ export default async function DashboardPage() {
   const firstBriefDue = nextSunday.toISOString().slice(0, 10)
 
   // ── Competitor brands + snapshots ────────────────────────────
-  const { data: brands } = await db
+  const { data: brands, error: brandsError } = await db
     .from('brands')
     .select('brand_id, brand_name, channels')
     .eq('account_id', accountId)
@@ -97,28 +103,34 @@ export default async function DashboardPage() {
     .eq('is_paused', false)
     .order('brand_name')
 
+  if (brandsError) console.error('[dashboard] brands query failed:', brandsError)
+
   const brandRows = (brands ?? []) as Array<Record<string, unknown>>
   const brandIds  = brandRows.map(b => b.brand_id as string)
 
   // Current-week snapshots
-  const { data: snapshots } = brandIds.length > 0
+  const { data: snapshots, error: snapshotsError } = brandIds.length > 0
     ? await db
         .from('snapshots')
         .select('brand_id, channel, metrics')
         .in('brand_id', brandIds)
         .eq('week_start', weekStart)
         .in('channel', ['instagram', 'meta_ads', 'amazon'])
-    : { data: [] }
+    : { data: [], error: null }
+
+  if (snapshotsError) console.error('[dashboard] snapshots query failed:', snapshotsError)
 
   // Prior-week amazon snapshots for rating delta
-  const { data: prevSnapshots } = brandIds.length > 0
+  const { data: prevSnapshots, error: prevSnapshotsError } = brandIds.length > 0
     ? await db
         .from('snapshots')
         .select('brand_id, metrics')
         .in('brand_id', brandIds)
         .eq('week_start', prevWeek)
         .eq('channel', 'amazon')
-    : { data: [] }
+    : { data: [], error: null }
+
+  if (prevSnapshotsError) console.error('[dashboard] prev snapshots query failed:', prevSnapshotsError)
 
   // Index snapshots by brand_id + channel
   type Snap = { brand_id: string; channel: string; metrics: Record<string, unknown> }
@@ -139,7 +151,7 @@ export default async function DashboardPage() {
     .select('suggestion_id, website, brand_name, competition_reason')
     .eq('account_id', accountId)
     .eq('status', 'pending')
-    .order('suggested_at', { ascending: true })
+    .order('created_at', { ascending: true })
 
   const suggestions: CompetitorSuggestion[] = (suggestionsRaw ?? []) as CompetitorSuggestion[]
 

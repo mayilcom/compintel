@@ -94,6 +94,21 @@ export const PLAN_LIMITS = {
 
 export type Plan = keyof typeof PLAN_LIMITS
 
+/**
+ * Normalize the `sources` JSONB column to a plain string array.
+ * The worker may write either string[] or {url, title?}[] — both are valid.
+ */
+export function normalizeSources(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return []
+  return raw.flatMap((item) => {
+    if (typeof item === 'string') return [item]
+    if (item && typeof item === 'object' && typeof (item as Record<string, unknown>).url === 'string') {
+      return [(item as Record<string, unknown>).url as string]
+    }
+    return []
+  })
+}
+
 /** Returns the display label for a plan limit reason */
 export const UPGRADE_REASONS: Record<string, string> = {
   competitors: "You've reached your competitor limit.",

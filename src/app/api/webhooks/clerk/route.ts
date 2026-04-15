@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Webhook } from 'svix'
-import { createClient } from '@supabase/supabase-js'
+import { createServiceClient } from '@/lib/supabase/server'
 
 // Clerk sends webhooks signed with Svix.
 // https://clerk.com/docs/integrations/webhooks/overview
@@ -34,13 +34,6 @@ type ClerkWebhookEvent =
   | ClerkOrgMembershipCreatedEvent
   | { type: string; data: unknown }
 
-function serviceSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { persistSession: false } }
-  )
-}
 
 export async function POST(req: NextRequest): Promise<NextResponse> {
   const webhookSecret = process.env.CLERK_WEBHOOK_SECRET
@@ -68,7 +61,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
   }
 
-  const supabase = serviceSupabase()
+  const supabase = createServiceClient()
 
   try {
     switch (event.type) {

@@ -7,14 +7,9 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { UpgradeModal } from '@/components/upgrade-modal'
 import { type Plan } from '@/lib/utils'
+import type { DbRecipient } from '@/lib/types'
 
-interface Recipient {
-  recipient_id: string
-  name:         string
-  email:        string
-  brief_variant: string
-  active:       boolean
-}
+type Recipient = DbRecipient
 
 const VARIANT_LABELS: Record<string, string> = {
   full:             'Full brief',

@@ -5,6 +5,28 @@ Format: `[version] YYYY-MM-DD — Description`
 
 ---
 
+## [0.1.18] 2026-04-15 — Codebase audit: 9 bug fixes across webhooks, brief pages, admin editor
+
+### Fixed
+
+- **`src/app/app/dashboard/page.tsx`** — `.order('suggested_at')` on `competitor_suggestions` changed to `.order('created_at')` (column `suggested_at` does not exist in the schema). Also added `error` destructuring + `console.error` logging on all six previously-silent DB queries (briefs, signal count, sent brief count, brands, snapshots, prev snapshots) so failures surface in Vercel logs.
+
+- **Webhook routes — legacy Supabase SDK removed** (`src/app/api/webhooks/clerk/route.ts`, `razorpay/route.ts`, `stripe/route.ts`, `src/app/api/unsubscribe/route.ts`) — all four files were importing `createClient` from `@supabase/supabase-js` directly and wrapping it in a local `serviceSupabase()` helper, violating the `@supabase/ssr` hard rule in CLAUDE.md. Replaced with `import { createServiceClient } from '@/lib/supabase/server'` in every file.
+
+- **`.env.local.example`** — `NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL` was `/onboarding` (would 404); corrected to `/onboarding/brand`.
+
+- **Admin brief editor** (`src/app/admin/briefs/[brief_id]/page.tsx`) — was entirely hardcoded mock data (Sunfeast/ITC example). Rewritten as an async server component: fetches brief by `brief_id` via `createServiceClient()`, fetches the account `company_name`, fetches signals by `brief.signal_ids` with a brand-name join, computes `weekRangeLabel` from `brief.week_start`. Added `export const dynamic = 'force-dynamic'` and `notFound()` for missing briefs. `params` typed as `Promise<{ brief_id: string }>` (Next.js 16 App Router convention).
+
+- **`sources` JSONB normalization** (`src/app/app/briefs/[brief_id]/page.tsx`, `src/app/brief/[brief_id]/page.tsx`) — both pages cast `s.sources` directly to `string[]`, which breaks when the worker writes `{url, title}[]` objects. Added `normalizeSources(raw: unknown): string[]` helper to `src/lib/utils.ts` that handles both shapes. Both brief pages now call `normalizeSources(s.sources)` instead. Also fixed `.order('score', ...)` → `.order('confidence', ...)` in both files (`score` is not a column; `confidence` is). Updated `params` to `Promise<...>` in both files.
+
+- **`src/components/upgrade/plan-cards.tsx`** — removed stale `// eslint-disable-next-line @typescript-eslint/no-explicit-any` comment on the `Window.Razorpay` declaration; the type already uses `Record<string, unknown>`, not `any`.
+
+### Added
+
+- **`src/lib/types.ts`** — new shared types file with `DbBrand` and `DbRecipient` interfaces. `src/app/app/settings/competitors/page.tsx` and `src/app/app/settings/recipients/page.tsx` now import from here instead of defining identical interfaces locally.
+
+---
+
 ## [0.1.17] 2026-04-15 — Enforce documentation: Stop hook + git pre-commit guard
 
 ### Added

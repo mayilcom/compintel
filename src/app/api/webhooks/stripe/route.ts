@@ -1,18 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Stripe from 'stripe'
-import { createClient } from '@supabase/supabase-js'
+import { createServiceClient } from '@/lib/supabase/server'
 
 function stripeClient(): Stripe {
   return new Stripe(process.env.STRIPE_SECRET_KEY!)
 }
 
-function serviceSupabase() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { persistSession: false } }
-  )
-}
 
 // Map Stripe subscription status to our internal status
 function mapStripeStatus(
@@ -67,7 +60,7 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
   }
 
-  const supabase = serviceSupabase()
+  const supabase = createServiceClient()
 
   try {
     switch (event.type) {

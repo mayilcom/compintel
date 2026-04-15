@@ -5,15 +5,9 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { PLATFORMS, parseChannels, buildChannels, defaultPlatformsFor } from '@/lib/platforms'
+import type { DbBrand } from '@/lib/types'
 
-interface Brand {
-  brand_id:  string
-  brand_name: string
-  domain:    string | null
-  is_client: boolean
-  channels:  Record<string, { handle?: string; brand_name?: string }> | null
-  is_paused: boolean
-}
+type Brand = DbBrand
 
 /** Inline edit form for a single brand's channels */
 function ChannelEditor({
