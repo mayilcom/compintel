@@ -44,26 +44,26 @@
   /* Shadows */
   --shadow-card:  0 1px 4px rgba(13, 13, 10, 0.06);
 
-  /* ── shadcn/ui CSS variable bridge (RGB triples for hsl()) ── */
-  --background:        247 243 237;   /* #F7F4ED paper       */
-  --foreground:        13 13 10;      /* #0D0D0A ink          */
-  --card:              255 255 255;   /* #FFFFFF surface      */
-  --card-foreground:   13 13 10;
-  --popover:           255 255 255;
-  --popover-foreground: 13 13 10;
-  --primary:           184 146 42;    /* #B8922A gold         */
-  --primary-foreground: 251 245 228;  /* #FBF5E4 gold-bg      */
-  --secondary:         240 237 228;   /* #F0EDE4 surface-2    */
-  --secondary-foreground: 13 13 10;
-  --muted:             240 237 228;   /* #F0EDE4              */
-  --muted-foreground:  107 104 96;    /* #6B6860              */
-  --accent:            251 245 228;   /* #FBF5E4 gold-bg      */
-  --accent-foreground: 122 94 26;     /* #7A5E1A gold-dark    */
-  --destructive:       192 57 43;     /* #C0392B threat       */
-  --destructive-foreground: 255 255 255;
-  --border:            224 221 212;   /* #E0DDD4              */
-  --input:             224 221 212;
-  --ring:              184 146 42;    /* #B8922A gold focus ring */
+  /* ── shadcn/ui CSS variable bridge (proper HSL: H S% L%) ── */
+  --background:        42 38% 95%;    /* #F7F4ED paper        */
+  --foreground:        60 13% 5%;     /* #0D0D0A ink          */
+  --card:              0 0% 100%;     /* #FFFFFF surface      */
+  --card-foreground:   60 13% 5%;
+  --popover:           0 0% 100%;
+  --popover-foreground: 60 13% 5%;
+  --primary:           44 63% 44%;    /* #B8922A gold         */
+  --primary-foreground: 44 74% 94%;   /* #FBF5E4 gold-bg      */
+  --secondary:         45 29% 92%;    /* #F0EDE4 surface-2    */
+  --secondary-foreground: 60 13% 5%;
+  --muted:             45 29% 92%;    /* #F0EDE4              */
+  --muted-foreground:  44 5% 40%;     /* #6B6860              */
+  --accent:            44 74% 94%;    /* #FBF5E4 gold-bg      */
+  --accent-foreground: 43 90% 29%;    /* #7A5E1A gold-dark    */
+  --destructive:       6 63% 46%;     /* #C0392B threat       */
+  --destructive-foreground: 0 0% 100%;
+  --border:            45 16% 86%;    /* #E0DDD4              */
+  --input:             45 16% 86%;
+  --ring:              44 63% 44%;    /* #B8922A gold focus ring */
 }
 
 /* ─── Force light mode globally — dark mode is out of scope for V1 ─────────── */
@@ -85,7 +85,7 @@ body {
   background-color: var(--paper);
   color: var(--ink);
   font-family: var(--font-body);
-  font-size: 14px;
+  font-size: 16px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

@@ -5,6 +5,17 @@ Format: `[version] YYYY-MM-DD — Description`
 
 ---
 
+## [0.1.12] 2026-04-15 — Design system fixes: colours, font size, favicon
+
+### Fixed
+
+- **CSS variables** (`src/app/globals.css`) — shadcn/ui bridge variables were set with RGB component values (e.g. `240 237 228`) where proper HSL notation (`H S% L%`) is required. `hsl(var(--muted))` with raw RGB digits produces an out-of-range or wrong colour in all browsers. All 11 variables converted to correct HSL values.
+- **`text-muted` colour** (`tailwind.config.ts`) — `muted` Tailwind token was an object pointing to `hsl(var(--muted))` (the surface-2 background). It is now a flat hex string `#6B6860`, so `text-muted` always renders the intended secondary-text grey regardless of the CSS variable layer. Removed the shadcn `muted` object entry (Button and Badge components use direct Mayil tokens, not shadcn muted classes).
+- **Base font size** (`src/app/globals.css`) — `html/body font-size` raised from `14px` to `16px` (browser default) so Tailwind's relative `text-sm` / `text-base` units render at expected sizes.
+- **Favicon** (`public/favicon.svg`) — Background was `#F7F4ED` (paper) which is indistinguishable from light browser tab chrome. Replaced with gold (`#B8922A`) background and white "M" mark.
+
+---
+
 ## [0.1.11] 2026-04-15 — NinjaPear competitor enrichment (background, cached)
 
 ### Added

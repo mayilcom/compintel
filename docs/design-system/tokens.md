@@ -1,6 +1,6 @@
 # Design Tokens
 
-**Last updated:** 2026-04-13  
+**Last updated:** 2026-04-15  
 **System:** Tailwind CSS v3 with custom Mayil tokens + shadcn/ui bridge
 
 ---
@@ -44,19 +44,21 @@ Mayil uses a warm editorial palette inspired by premium print intelligence publi
 
 ### shadcn/ui bridge
 
-shadcn components use Tailwind CSS variables in `hsl(var(--x))` format. These are mapped in `globals.css` as RGB triples:
+shadcn components use Tailwind CSS variables in `hsl(var(--x))` format. These are mapped in `globals.css` using proper **HSL notation** (`H S% L%`):
 
 ```css
---background: 247 244 237;  /* paper */
---foreground: 13 13 10;     /* ink */
---card: 255 255 255;        /* surface */
---primary: 184 146 42;      /* gold */
---muted: 240 237 230;       /* surface-2 */
---muted-foreground: 107 104 96; /* muted text */
---border: 227 223 214;      /* border */
---input: 227 223 214;       /* border */
---ring: 184 146 42;         /* gold */
+--background: 42 38% 95%;   /* #F7F4ED paper        */
+--foreground: 60 13% 5%;    /* #0D0D0A ink           */
+--card:        0 0% 100%;   /* #FFFFFF surface       */
+--primary:    44 63% 44%;   /* #B8922A gold          */
+--muted:      45 29% 92%;   /* #F0EDE4 surface-2 bg  */
+--muted-foreground: 44 5% 40%; /* #6B6860            */
+--border:     45 16% 86%;   /* #E0DDD4               */
+--input:      45 16% 86%;   /* #E0DDD4               */
+--ring:       44 63% 44%;   /* #B8922A gold          */
 ```
+
+**Important:** `text-muted` in Tailwind resolves to the direct Mayil hex token `#6B6860`, not to `hsl(var(--muted))` (which is the surface-2 background). The `muted` key in `tailwind.config.ts` is a flat hex string, not a shadcn object.
 
 ---
 
@@ -78,7 +80,7 @@ Loaded via Google Fonts `@import` at top of `globals.css`.
 |-------|-------|------|
 | Page heading | `font-display text-xl text-ink` | 20px |
 | Section heading | `font-display text-lg text-ink` | 18px |
-| Body text | `text-sm text-ink` | 14px |
+| Body text | `text-sm text-ink` | ~14px (base 16px) |
 | Secondary body | `text-[13px] text-muted` | 13px |
 | Small / captions | `text-[11px] text-muted` | 11px |
 | Label sections | `.label-section` | 10px DM Mono, letter-spacing 0.08em |

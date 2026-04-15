@@ -15,6 +15,7 @@ const config: Config = {
         surface:     '#FFFFFF',
         'surface-2': '#F0EDE4',
         ink:         '#0D0D0A',
+        muted:       '#6B6860',   // text-muted = secondary text
         border:      '#E0DDD4',
         gold:        '#B8922A',
         'gold-bg':   '#FBF5E4',
@@ -27,7 +28,6 @@ const config: Config = {
         silence:     '#888780',
 
         // ── shadcn/ui CSS-variable bridge (hsl() format)
-        // Note: 'muted' Mayil token is accessed via text-[#6B6860] or CSS var(--muted)
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         card: {
@@ -41,10 +41,6 @@ const config: Config = {
         secondary: {
           DEFAULT:    'hsl(var(--secondary))',
           foreground: 'hsl(var(--secondary-foreground))',
-        },
-        muted: {
-          DEFAULT:    'hsl(var(--muted))',
-          foreground: 'hsl(var(--muted-foreground))',
         },
         accent: {
           DEFAULT:    'hsl(var(--accent))',
