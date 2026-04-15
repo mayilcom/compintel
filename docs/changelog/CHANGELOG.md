@@ -5,6 +5,36 @@ Format: `[version] YYYY-MM-DD — Description`
 
 ---
 
+## [0.1.11] 2026-04-15 — NinjaPear competitor enrichment (background, cached)
+
+### Added
+
+**Database**
+- `supabase/migrations/006_ninjapear_cache.sql` — adds `ninjapear_cache` table (website-keyed, 30-day TTL, shared across accounts), `competitor_suggestions` table (per-account suggestions with pending/accepted/dismissed status), and `accounts.ninjapear_enrichment_status` column.
+
+**Workers**
+- `apps/workers/src/workers/enrichment.ts` — new Railway cron worker (daily 8am IST). Picks up accounts with `ninjapear_enrichment_status = 'pending'`, checks `ninjapear_cache` before calling NinjaPear `/competitor/listing`, stores new competitors as `competitor_suggestions`, marks account `done`. Skips brands already tracked. Gracefully handles API timeout (100s) and missing key.
+
+**API routes**
+- `src/app/api/suggestions/[id]/route.ts` — `PATCH { action: 'accept' | 'dismiss' }`. Accept: inserts competitor brand row from suggestion + marks accepted. Dismiss: marks dismissed only. Ownership-checked via `account_id`.
+
+**Components**
+- `src/components/dashboard/competitor-suggestions.tsx` — `'use client'` card shown on dashboard when pending suggestions exist. Add / Dismiss per item, Add all button. Removes item from list optimistically after action.
+
+### Updated
+
+- `src/app/app/dashboard/page.tsx` — queries `competitor_suggestions` for the account and renders `<CompetitorSuggestions>` above the competitor table when suggestions are pending.
+- `src/app/api/onboarding/complete/route.ts` — sets `ninjapear_enrichment_status = 'pending'` alongside `onboarding_completed_at`, triggering the enrichment worker on its next daily run.
+- `apps/workers/package.json` — added `"enrichment": "tsx src/workers/enrichment.ts"` script.
+- `apps/workers/railway.toml` — added enrichment service entry (cron `30 2 * * *` UTC = 8am IST daily, requires `NINJAPEAR_API_KEY`).
+- `.env.local.example` — added `NINJAPEAR_API_KEY`.
+
+### Cache strategy
+
+NinjaPear competitor listing costs ~74 credits and takes ~82 seconds per company. Results are cached in `ninjapear_cache` for 30 days keyed by website URL, shared across all accounts that track the same competitor. After the initial call, subsequent accounts with the same competitor domain pay 0 credits and get instant results.
+
+---
+
 ## [0.1.10] 2026-04-15 — Force dynamic rendering on all data-fetching pages
 
 ### Fixed

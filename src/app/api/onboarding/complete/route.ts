@@ -15,7 +15,10 @@ export async function POST() {
 
   await db
     .from('accounts')
-    .update({ onboarding_completed_at: new Date().toISOString() })
+    .update({
+      onboarding_completed_at:    new Date().toISOString(),
+      ninjapear_enrichment_status: 'pending',   // triggers background enrichment worker
+    })
     .eq('clerk_user_id', userId)
     .is('onboarding_completed_at', null) // only write once
 

@@ -1,6 +1,6 @@
 # API Integrations
 
-**Last updated:** 2026-04-14
+**Last updated:** 2026-04-15
 
 ---
 
@@ -167,6 +167,70 @@ Meta's Ads Library is a public transparency tool. No authentication is needed fo
 **Purpose:** Competitor YouTube channel activity  
 **Billing:** Free 10,000 units/day quota (1 search = 100 units; 1 video list = 1 unit).  
 **Auth:** API key (no user OAuth needed for public data)
+
+---
+
+## NinjaPear (Nubela)
+
+**Purpose:** Company intelligence — competitor listing and company profile enrichment  
+**API base:** `https://nubela.co/api/v1/`  
+**Billing:** Credit-based. Competitor listing costs ~74 credits per company (~82s latency). Cache aggressively to avoid repeat charges.
+
+### Endpoints used
+
+| Endpoint | Credits | Notes |
+|----------|---------|-------|
+| `GET /competitor/listing?website=<domain>` | ~74 | Returns list of competitor companies with website and reason |
+| `GET /company/profile?website=<domain>` | ~10 | Basic company info (optional enrichment) |
+
+### Caching strategy
+
+NinjaPear calls are **never made in the request path**. All enrichment runs in the daily Railway worker (`enrichment.ts`, `30 2 * * *` UTC / 8am IST).
+
+Results are cached in `ninjapear_cache` for **30 days** keyed by website domain. The cache is shared across all accounts — if two accounts track the same competitor, the API is only called once in the first 30 days.
+
+```
+onboarding/complete  →  accounts.ninjapear_enrichment_status = 'pending'
+                           ↓  (async, daily cron)
+enrichment worker    →  checks ninjapear_cache (TTL 30d)
+                           ↓  on cache miss
+                        calls NinjaPear /competitor/listing
+                           ↓
+                        upserts ninjapear_cache
+                        inserts competitor_suggestions (status='pending')
+                           ↓
+dashboard page       →  shows suggestions to account owner (Add / Dismiss)
+```
+
+### Usage pattern (enrichment worker)
+
+```ts
+const cached = await db
+  .from('ninjapear_cache')
+  .select('competitor_listing')
+  .eq('website', domain)
+  .gt('expires_at', new Date().toISOString())
+  .maybeSingle()
+
+if (cached.data) return cached.data.competitor_listing
+
+const res = await fetch(
+  `https://nubela.co/api/v1/competitor/listing?website=${domain}`,
+  { headers: { Authorization: `Bearer ${process.env.NINJAPEAR_API_KEY}` }, signal: AbortSignal.timeout(100_000) }
+)
+const data = await res.json()
+
+await db.from('ninjapear_cache').upsert({
+  website: domain,
+  competitor_listing: data,
+  fetched_at: new Date().toISOString(),
+  expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+})
+return data
+```
+
+### Required env var
+`NINJAPEAR_API_KEY` — set in Railway enrichment service only (not needed in the Vercel web app).
 
 ---
 

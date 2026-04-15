@@ -3,6 +3,8 @@ export const dynamic = 'force-dynamic'
 import { auth } from '@clerk/nextjs/server'
 import { redirect } from 'next/navigation'
 import { Button } from '@/components/ui/button'
+import { CompetitorSuggestions } from '@/components/dashboard/competitor-suggestions'
+import type { CompetitorSuggestion } from '@/components/dashboard/competitor-suggestions'
 import { WeeklyStatusCard } from '@/components/dashboard/weekly-status-card'
 import { CompetitorTable } from '@/components/dashboard/competitor-table'
 import type { CompetitorRow } from '@/components/dashboard/competitor-table'
@@ -44,7 +46,7 @@ export default async function DashboardPage() {
   // ── Account ──────────────────────────────────────────────────
   const { data: account } = await db
     .from('accounts')
-    .select('account_id, plan, trial_ends_at, onboarding_completed_at')
+    .select('account_id, plan, trial_ends_at, onboarding_completed_at, ninjapear_enrichment_status')
     .eq('clerk_user_id', userId)
     .single()
 
@@ -131,6 +133,16 @@ export default async function DashboardPage() {
     prevAmazonMap.set(s.brand_id, s)
   }
 
+  // ── Competitor suggestions from NinjaPear enrichment ────────
+  const { data: suggestionsRaw } = await db
+    .from('competitor_suggestions')
+    .select('suggestion_id, website, brand_name, competition_reason')
+    .eq('account_id', accountId)
+    .eq('status', 'pending')
+    .order('suggested_at', { ascending: true })
+
+  const suggestions: CompetitorSuggestion[] = (suggestionsRaw ?? []) as CompetitorSuggestion[]
+
   // Build competitor rows for the table
   const competitors: CompetitorRow[] = brandRows.map(brand => {
     const id   = brand.brand_id as string
@@ -182,6 +194,11 @@ export default async function DashboardPage() {
         isFirstBrief={isFirstBrief}
         firstBriefDue={firstBriefDue}
       />
+
+      {/* NinjaPear competitor suggestions */}
+      {suggestions.length > 0 && (
+        <CompetitorSuggestions suggestions={suggestions} />
+      )}
 
       {/* Competitor snapshot table */}
       <div>

@@ -1,6 +1,6 @@
 # Database Schema
 
-**Last updated:** 2026-04-14  
+**Last updated:** 2026-04-15  
 **Database:** Supabase PostgreSQL  
 **Extensions:** `uuid-ossp`, `pg_trgm`
 
@@ -52,6 +52,7 @@ Top-level tenant record. One per billing entity (individual or organisation).
 | `pause_until` | TIMESTAMPTZ | NULL = indefinite |
 | `skip_next_delivery` | BOOLEAN | Skip exactly once; reset by delivery worker |
 | `onboarding_completed_at` | TIMESTAMPTZ | NULL until `/api/onboarding/complete` is called |
+| `ninjapear_enrichment_status` | TEXT | NULL → pending → running → done / failed. Set to `pending` by `/api/onboarding/complete`; processed by the daily enrichment worker. |
 | `next_collection_at` | TIMESTAMPTZ | Scheduled by collector |
 | `whatsapp_number` | TEXT | For future WhatsApp alerts |
 | `created_at` | TIMESTAMPTZ | |
@@ -232,6 +233,47 @@ Pre-seeded table of Indian brands → verified social handles. Powers competitor
 
 ---
 
+### `ninjapear_cache`
+Shared cross-account cache for NinjaPear (Nubela) company intelligence API responses. Avoids re-charging credits for the same domain across multiple accounts.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `website` | TEXT PK | Normalised domain (e.g. `britannia.co.in`) |
+| `company_details` | JSONB | NinjaPear `/company/profile` response |
+| `competitor_listing` | JSONB | NinjaPear `/competitor/listing` response |
+| `fetched_at` | TIMESTAMPTZ | When the API was last called |
+| `expires_at` | TIMESTAMPTZ | `fetched_at + 30 days`. Enrichment worker skips cache rows where `expires_at > NOW()`. |
+
+**No RLS** — this is a shared lookup table, accessible only to the service-role key used by the enrichment worker.
+
+---
+
+### `competitor_suggestions`
+Per-account competitor suggestions derived from NinjaPear data. The enrichment worker writes these; the dashboard surfaces them for the account owner to accept or dismiss.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| `suggestion_id` | UUID PK | |
+| `account_id` | UUID FK → accounts | |
+| `website` | TEXT NOT NULL | Competitor domain |
+| `brand_name` | TEXT NOT NULL | Company name from NinjaPear |
+| `competition_reason` | TEXT | Short explanation from NinjaPear data |
+| `status` | TEXT | pending / accepted / dismissed (CHECK constraint) |
+| `created_at` | TIMESTAMPTZ | |
+
+**Unique:** `(account_id, website)` — prevents duplicate suggestions for the same domain  
+**Index:** `idx_competitor_suggestions_account_status (account_id, status)`  
+**RLS:** `suggestions_isolation` — `account_id` in user's accounts
+
+#### Suggestion lifecycle
+```
+enrichment worker writes  →  pending
+account owner clicks Add  →  accepted  (brand inserted into brands table)
+account owner dismisses   →  dismissed
+```
+
+---
+
 ### `plan_limits`
 Per-plan feature limits. Single source of truth — never hardcoded in app code.
 
@@ -284,6 +326,7 @@ Per-category thresholds for signal scoring. Read by Signal Ranker worker.
 | `003_worker_tables.sql` | Adds `differ_results` staging table; adds `score` column to signals; adds `variant_html` and `is_baseline` columns to briefs |
 | `004_brief_content_columns.sql` | Adds `summary`, `closing_question`, `is_baseline` to briefs for web rendering without HTML parsing |
 | `005_account_profile_fields.sql` | Adds `company_name` and `role` to accounts for Settings → Profile page |
+| `006_ninjapear_cache.sql` | Adds `ninjapear_cache` shared cache table, `competitor_suggestions` per-account suggestion table, and `ninjapear_enrichment_status` column on `accounts` |
 
 Apply with:
 ```bash

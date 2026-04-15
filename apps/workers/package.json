@@ -9,6 +9,7 @@
     "ai-interpreter": "tsx src/workers/ai-interpreter.ts",
     "assembler":      "tsx src/workers/brief-assembler.ts",
     "delivery":       "tsx src/workers/delivery.ts",
+    "enrichment":     "tsx src/workers/enrichment.ts",
     "typecheck":      "tsc --noEmit"
   },
   "dependencies": {
