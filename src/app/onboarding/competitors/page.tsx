@@ -24,6 +24,7 @@ interface ConfirmedCompetitor {
   amazon_brand: string | null
   category: string | null
   source: 'lookup' | 'manual'
+  channels?: Record<string, { handle?: string; url?: string }>
 }
 
 export default function OnboardingCompetitorsPage() {
@@ -34,9 +35,25 @@ export default function OnboardingCompetitorsPage() {
   const [isSearching, setIsSearching]             = useState(false)
   const [confirmed, setConfirmed]                 = useState<ConfirmedCompetitor[]>([])
   const [showManual, setShowManual]               = useState(false)
-  const [manualUrl, setManualUrl]                 = useState('')
+  const [manualName, setManualName]               = useState('')
+  const [manualInstagram, setManualInstagram]     = useState('')
+  const [manualYoutube, setManualYoutube]         = useState('')
+  const [manualLinkedin, setManualLinkedin]       = useState('')
   const [isSaving, setIsSaving]                   = useState(false)
   const [error, setError]                         = useState<string | null>(null)
+
+  function extractHandle(input: string, platform: 'instagram' | 'linkedin' | 'youtube'): string {
+    const s = input.trim()
+    if (!s) return ''
+    const patterns: Record<string, RegExp> = {
+      instagram: /(?:instagram\.com\/)([A-Za-z0-9_.]+)/,
+      linkedin:  /(?:linkedin\.com\/company\/)([A-Za-z0-9_-]+)/,
+      youtube:   /(?:youtube\.com\/(?:@|c\/|channel\/|user\/))([A-Za-z0-9_.-]+)/,
+    }
+    const match = s.match(patterns[platform])
+    if (match) return match[1]
+    return s.replace(/^@/, '').split('/')[0]
+  }
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -84,27 +101,32 @@ export default function OnboardingCompetitorsPage() {
   }
 
   function addManual() {
-    const raw = manualUrl.trim()
-    if (!raw) return
+    const name = manualName.trim()
+    if (!name) return
 
-    // Extract Instagram handle from URL if present
-    const igMatch = raw.match(/instagram\.com\/([^/?#]+)/i)
-    const handle  = igMatch ? igMatch[1] : null
+    if (confirmed.some(c => c.brand_name.toLowerCase() === name.toLowerCase())) return
 
-    // Use the raw value as brand name if no URL pattern matched
-    const brandName = handle ?? raw.replace(/^https?:\/\//, '').split('/')[0]
-
-    if (confirmed.some(c => c.brand_name.toLowerCase() === brandName.toLowerCase())) return
+    const ig = extractHandle(manualInstagram, 'instagram')
+    const yt = extractHandle(manualYoutube,   'youtube')
+    const li = extractHandle(manualLinkedin,  'linkedin')
 
     setConfirmed(prev => [...prev, {
-      brand_name:   brandName,
+      brand_name:   name,
       domain:       null,
-      instagram:    handle ? `@${handle}` : null,
+      instagram:    ig || null,
       amazon_brand: null,
       category:     null,
       source:       'manual',
+      channels: {
+        ...(ig ? { instagram: { handle: ig } } : {}),
+        ...(yt ? { youtube:   { handle: yt } } : {}),
+        ...(li ? { linkedin:  { handle: li } } : {}),
+      },
     }])
-    setManualUrl('')
+    setManualName('')
+    setManualInstagram('')
+    setManualYoutube('')
+    setManualLinkedin('')
     setShowManual(false)
   }
 
@@ -124,6 +146,7 @@ export default function OnboardingCompetitorsPage() {
               instagram:    c.instagram,
               amazon_brand: c.amazon_brand,
               category:     c.category,
+              channels:     c.channels ?? {},
             })),
           }),
         })
@@ -253,7 +276,7 @@ export default function OnboardingCompetitorsPage() {
         </div>
       )}
 
-      {/* Manual paste fallback */}
+      {/* Manual add */}
       {!showManual ? (
         <p className="text-[13px] text-muted mb-1">
           Can&apos;t find a competitor?{' '}
@@ -262,27 +285,74 @@ export default function OnboardingCompetitorsPage() {
             onClick={() => setShowManual(true)}
             className="text-gold hover:text-gold-dark transition-colors font-medium"
           >
-            Paste the profile URL directly
+            Add manually
           </button>
         </p>
       ) : (
         <Card className="mb-4">
-          <CardContent className="p-4">
-            <p className="label-section mb-2">Add manually</p>
-            <div className="flex gap-2">
+          <CardContent className="p-4 flex flex-col gap-3">
+            <p className="label-section">Add competitor manually</p>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-[11px] text-muted font-medium">Brand name *</label>
               <input
                 type="text"
-                placeholder="Instagram URL or brand name"
-                value={manualUrl}
-                onChange={(e) => setManualUrl(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && addManual()}
-                className="h-10 flex-1 rounded-[8px] border border-border bg-surface px-3 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-gold/30"
+                placeholder="e.g. Britannia"
+                value={manualName}
+                onChange={(e) => setManualName(e.target.value)}
+                className="h-9 rounded-[8px] border border-border bg-surface px-3 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-gold/30"
               />
-              <Button variant="outline" onClick={addManual} disabled={!manualUrl.trim()}>
-                Add
-              </Button>
-              <Button variant="ghost" onClick={() => { setShowManual(false); setManualUrl('') }}>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] text-muted font-medium">Instagram</label>
+                <input
+                  type="text"
+                  placeholder="@handle or URL"
+                  value={manualInstagram}
+                  onChange={(e) => setManualInstagram(e.target.value)}
+                  className="h-9 rounded-[8px] border border-border bg-surface px-3 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-gold/30"
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] text-muted font-medium">YouTube</label>
+                <input
+                  type="text"
+                  placeholder="youtube.com/@…"
+                  value={manualYoutube}
+                  onChange={(e) => setManualYoutube(e.target.value)}
+                  className="h-9 rounded-[8px] border border-border bg-surface px-3 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-gold/30"
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-[11px] text-muted font-medium">LinkedIn</label>
+                <input
+                  type="text"
+                  placeholder="linkedin.com/company/…"
+                  value={manualLinkedin}
+                  onChange={(e) => setManualLinkedin(e.target.value)}
+                  className="h-9 rounded-[8px] border border-border bg-surface px-3 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-gold/30"
+                />
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setShowManual(false)
+                  setManualName('')
+                  setManualInstagram('')
+                  setManualYoutube('')
+                  setManualLinkedin('')
+                }}
+              >
                 Cancel
+              </Button>
+              <Button variant="outline" size="sm" onClick={addManual} disabled={!manualName.trim()}>
+                Add competitor
               </Button>
             </div>
           </CardContent>

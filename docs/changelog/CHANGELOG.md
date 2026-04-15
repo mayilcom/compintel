@@ -5,6 +5,21 @@ Format: `[version] YYYY-MM-DD — Description`
 
 ---
 
+## [0.1.13] 2026-04-15 — Channel handles in onboarding (brand + competitors)
+
+### Added
+
+- **Onboarding → Brand** (`src/app/onboarding/brand/page.tsx`) — new "Channel handles" section with four optional fields: Instagram, YouTube, LinkedIn company, Facebook page. Accepts raw handles (`@brand`) or full profile URLs — both are normalised to a plain handle before saving. Data flows into `brands.channels` JSONB so the collector worker can start tracking immediately.
+- **`/api/onboarding/brand`** (`src/app/api/onboarding/brand/route.ts`) — now accepts and saves a `channels` object from the form body. Works for both initial insert and re-submit (update).
+- **Onboarding → Competitors** (`src/app/onboarding/competitors/page.tsx`) — "Add manually" form expanded from a single URL field to a structured form: brand name (required) + Instagram / YouTube / LinkedIn fields. Handles are normalised from URLs the same way as the brand step.
+- **`/api/onboarding/competitors/save`** (`src/app/api/onboarding/competitors/save\route.ts`) — accepts optional `channels` per competitor; merges with legacy `instagram` / `amazon_brand` fields so both paths still work.
+
+### Why
+
+Without these fields, brands without a known website produced empty `channels: {}` — meaning the collector worker had no handles to scrape and would silently produce no snapshots for that brand.
+
+---
+
 ## [0.1.12] 2026-04-15 — Design system fixes: colours, font size, favicon
 
 ### Fixed

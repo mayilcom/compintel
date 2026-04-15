@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  const { brand_name, domain, category, market } = body
+  const { brand_name, domain, category, market, channels } = body
   if (!brand_name || typeof brand_name !== 'string') {
     return NextResponse.json({ error: 'brand_name is required' }, { status: 400 })
   }
@@ -36,6 +36,11 @@ export async function POST(req: NextRequest) {
   if (!market || typeof market !== 'string') {
     return NextResponse.json({ error: 'market is required' }, { status: 400 })
   }
+
+  // channels is optional — must be a plain object if provided
+  const channelsValue = channels && typeof channels === 'object' && !Array.isArray(channels)
+    ? channels as Record<string, unknown>
+    : {}
 
   const dbCategory = CATEGORY_MAP[category as string] ?? 'Other'
 
@@ -76,6 +81,7 @@ export async function POST(req: NextRequest) {
         brand_name: (brand_name as string).trim(),
         domain:     domain ? (domain as string).trim() : null,
         category:   dbCategory,
+        channels:   channelsValue,
       })
       .eq('brand_id', (existing as { brand_id: string }).brand_id)
       .select('brand_id')
@@ -89,7 +95,7 @@ export async function POST(req: NextRequest) {
         brand_name: (brand_name as string).trim(),
         domain:     domain ? (domain as string).trim() : null,
         is_client:  true,
-        channels:   {},
+        channels:   channelsValue,
         category:   dbCategory,
         is_paused:  false,
       })

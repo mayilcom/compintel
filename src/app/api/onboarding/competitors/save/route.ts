@@ -8,6 +8,7 @@ interface CompetitorInput {
   instagram?:   string | null
   amazon_brand?: string | null
   category?:    string | null
+  channels?:    Record<string, { handle?: string; url?: string }> | null
 }
 
 /**
@@ -60,18 +61,25 @@ export async function POST(req: NextRequest) {
 
   const toInsert = competitors
     .filter(c => c.brand_name?.trim() && !existingNames.has(c.brand_name.trim().toLowerCase()))
-    .map(c => ({
-      account_id: accountId,
-      brand_name: c.brand_name.trim(),
-      domain:     c.domain?.trim() || null,
-      is_client:  false,
-      channels: {
-        instagram: c.instagram ? { handle: c.instagram.replace('@', '') } : null,
-        amazon:    c.amazon_brand ? { brand_name: c.amazon_brand } : null,
-      },
-      category:  c.category ?? accountCategory ?? null,
-      is_paused: false,
-    }))
+    .map(c => {
+      // Merge explicit channels object with legacy instagram/amazon fields
+      const channels: Record<string, unknown> = { ...(c.channels ?? {}) }
+      if (c.instagram && !channels.instagram) {
+        channels.instagram = { handle: c.instagram.replace('@', '') }
+      }
+      if (c.amazon_brand && !channels.amazon) {
+        channels.amazon = { brand_name: c.amazon_brand }
+      }
+      return {
+        account_id: accountId,
+        brand_name: c.brand_name.trim(),
+        domain:     c.domain?.trim() || null,
+        is_client:  false,
+        channels,
+        category:   c.category ?? accountCategory ?? null,
+        is_paused:  false,
+      }
+    })
 
   if (toInsert.length === 0) {
     return NextResponse.json({ inserted: 0, skipped: competitors.length })
