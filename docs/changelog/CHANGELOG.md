@@ -5,6 +5,19 @@ Format: `[version] YYYY-MM-DD — Description`
 
 ---
 
+## [0.1.15] 2026-04-15 — Security: enable RLS on differ_results, ninjapear_cache, competitor_suggestions
+
+### Fixed
+
+- `supabase/migrations/008_rls_missing_tables.sql` — Supabase security linter flagged three public tables with RLS disabled:
+  - **`differ_results`** — worker-only staging table. RLS enabled + `differ_results_isolation` policy (`account_id::text = auth.uid()::text`). Railway workers use `SERVICE_ROLE_KEY` which bypasses RLS; policy is defence-in-depth.
+  - **`ninjapear_cache`** — shared cache with no `account_id` column. RLS enabled with **no permissive policy**, so only service-role access is possible. Anon/authenticated user clients are fully blocked from this table.
+  - **`competitor_suggestions`** — per-account table read by the dashboard. RLS enabled + `suggestions_isolation` policy (same isolation pattern as all other tenant tables).
+
+These were missed in migrations 003 and 006. All other tables were created with RLS from migration 001.
+
+---
+
 ## [0.1.14] 2026-04-15 — Fix account-not-found 404; market/country overhaul
 
 ### Fixed

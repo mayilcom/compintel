@@ -119,7 +119,8 @@ Staging table populated by the Differ worker (Stage 2), consumed by Signal Ranke
 | `headlines` | TEXT[] | News headlines scraped this week (news channel) |
 | `created_at` | TIMESTAMPTZ | |
 
-**Unique:** `(brand_id, week_start, channel)`
+**Unique:** `(brand_id, week_start, channel)`  
+**RLS:** `differ_results_isolation` — `account_id::text = auth.uid()::text`
 
 ---
 
@@ -245,7 +246,7 @@ Shared cross-account cache for NinjaPear (Nubela) company intelligence API respo
 | `fetched_at` | TIMESTAMPTZ | When the API was last called |
 | `expires_at` | TIMESTAMPTZ | `fetched_at + 30 days`. Enrichment worker skips cache rows where `expires_at > NOW()`. |
 
-**No RLS** — this is a shared lookup table, accessible only to the service-role key used by the enrichment worker.
+**RLS enabled, no permissive policy** — only `SERVICE_ROLE_KEY` (used by the enrichment worker) can access this table. Anon and authenticated user clients are fully blocked.
 
 ---
 
@@ -329,6 +330,7 @@ Per-category thresholds for signal scoring. Read by Signal Ranker worker.
 | `005_account_profile_fields.sql` | Adds `company_name` and `role` to accounts for Settings → Profile page |
 | `006_ninjapear_cache.sql` | Adds `ninjapear_cache` shared cache table, `competitor_suggestions` per-account suggestion table, and `ninjapear_enrichment_status` column on `accounts` |
 | `007_account_country.sql` | Adds `country` TEXT column to `accounts` for country-of-business (ISO code, set during onboarding) |
+| `008_rls_missing_tables.sql` | Enables RLS on `differ_results` (+ isolation policy), `ninjapear_cache` (no policy = service-role only), `competitor_suggestions` (+ isolation policy) |
 
 Apply with:
 ```bash
