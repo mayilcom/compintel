@@ -53,6 +53,7 @@ Top-level tenant record. One per billing entity (individual or organisation).
 | `skip_next_delivery` | BOOLEAN | Skip exactly once; reset by delivery worker |
 | `onboarding_completed_at` | TIMESTAMPTZ | NULL until `/api/onboarding/complete` is called |
 | `ninjapear_enrichment_status` | TEXT | NULL → pending → running → done / failed. Set to `pending` by `/api/onboarding/complete`; processed by the daily enrichment worker. |
+| `country` | TEXT | ISO 3166-1 alpha-2 country code (e.g. `IN`, `US`). Auto-detected from IP during onboarding; user-editable. Separate from `billing_region` which is set at payment time. |
 | `next_collection_at` | TIMESTAMPTZ | Scheduled by collector |
 | `whatsapp_number` | TEXT | For future WhatsApp alerts |
 | `created_at` | TIMESTAMPTZ | |
@@ -327,6 +328,7 @@ Per-category thresholds for signal scoring. Read by Signal Ranker worker.
 | `004_brief_content_columns.sql` | Adds `summary`, `closing_question`, `is_baseline` to briefs for web rendering without HTML parsing |
 | `005_account_profile_fields.sql` | Adds `company_name` and `role` to accounts for Settings → Profile page |
 | `006_ninjapear_cache.sql` | Adds `ninjapear_cache` shared cache table, `competitor_suggestions` per-account suggestion table, and `ninjapear_enrichment_status` column on `accounts` |
+| `007_account_country.sql` | Adds `country` TEXT column to `accounts` for country-of-business (ISO code, set during onboarding) |
 
 Apply with:
 ```bash

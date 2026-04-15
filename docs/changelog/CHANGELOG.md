@@ -5,6 +5,24 @@ Format: `[version] YYYY-MM-DD — Description`
 
 ---
 
+## [0.1.14] 2026-04-15 — Fix account-not-found 404; market/country overhaul
+
+### Fixed
+
+- **Account not found (404)** — `POST /api/onboarding/brand` returned 404 when no `accounts` row existed. Root cause: Clerk webhook not yet configured in Clerk Dashboard, so `user.created` events never reached `/api/webhooks/clerk`. Fix: lazy account creation — if no row exists, the route fetches the Clerk user via `currentUser()`, inserts the account (trial plan, 14-day trial), and adds the owner as a default recipient before continuing. The webhook path remains primary; this is a safe fallback.
+
+### Changed
+
+- **Business type** (`accounts.market`) — options changed from `India B2C / India B2B / International` to `B2C / B2B / Global`. The label is now "Business type" (not "Market"). B2C/B2B determines which channel types are relevant; country is now a separate field.
+- **Country of business** (`accounts.country`, new column via migration 007) — ISO 3166-1 alpha-2 code (`IN`, `US`, etc.). Auto-detected from the caller's IP using Vercel's built-in `x-vercel-ip-country` request header (no external API, no cost). User can change it via a dropdown of 21 countries + "Other". Country is saved alongside business type on the brand step.
+
+### Added
+
+- `supabase/migrations/007_account_country.sql` — `ALTER TABLE accounts ADD COLUMN IF NOT EXISTS country text`
+- `src/app/api/geo/country/route.ts` — `GET /api/geo/country` reads `x-vercel-ip-country` header and returns `{ code, name }`. Used by the onboarding brand page on mount.
+
+---
+
 ## [0.1.13] 2026-04-15 — Channel handles in onboarding (brand + competitors)
 
 ### Added
