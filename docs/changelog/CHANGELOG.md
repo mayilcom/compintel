@@ -5,6 +5,26 @@ Format: `[version] YYYY-MM-DD — Description`
 
 ---
 
+## [0.1.24] 2026-04-17 — Instagram: separate app credentials, deauthorize + deletion webhooks
+
+### Added
+
+- **`src/app/api/instagram/deauthorize/route.ts`** — `POST /api/instagram/deauthorize`. Called by Meta when a user removes the app from their Instagram account. Verifies the `signed_request` HMAC-SHA256 (using `INSTAGRAM_APP_SECRET`), looks up the account by `oauth_tokens.instagram.user_id`, and removes the Instagram token. Required by Meta before app review.
+
+- **`src/app/api/instagram/deletion/route.ts`** — `POST /api/instagram/deletion`. Called by Meta when a user requests data deletion via Facebook Privacy Center. Verifies `signed_request`, deletes `oauth_tokens.instagram` for the matching account, returns `{ url, confirmation_code }` as required by Meta's spec.
+
+### Changed
+
+- **`src/app/api/oauth/[provider]/init/route.ts`** — Instagram provider now uses `INSTAGRAM_APP_ID` (not `FACEBOOK_APP_ID`). The Instagram App ID is different from the Meta/Facebook App ID.
+
+- **`src/app/api/oauth/[provider]/callback/route.ts`** — Instagram token exchange now uses `INSTAGRAM_APP_ID`/`INSTAGRAM_APP_SECRET`. Added `user_id?: string` to `TokenResponse` — Instagram Business Login returns a `user_id` in the token response which is stored in `oauth_tokens.instagram.user_id` for webhook lookups.
+
+- **`src/app/app/settings/channels/page.tsx`** — `CONFIGURED_PROVIDERS` now checks `INSTAGRAM_APP_ID` (not `FACEBOOK_APP_ID`) to determine if the Instagram Connect button should be enabled.
+
+- **`.env.local.example`** — split OAuth section into per-provider blocks with comments. Added `INSTAGRAM_APP_ID`/`INSTAGRAM_APP_SECRET`. Each provider shows its callback, deauthorize, and deletion URLs.
+
+---
+
 ## [0.1.23] 2026-04-17 — Instagram Business Login: separate callback, clean provider split
 
 ### Changed

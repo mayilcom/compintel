@@ -8,6 +8,7 @@ interface TokenResponse {
   expires_in?:   number
   refresh_token?: string
   token_type?:   string
+  user_id?:      string  // returned by Instagram Business Login
 }
 
 async function exchangeCode(
@@ -26,10 +27,10 @@ async function exchangeCode(
       clientSecret = process.env.FACEBOOK_APP_SECRET
       break
     case 'instagram':
-      // Instagram Business Login uses its own token endpoint
+      // Instagram Business Login uses its own app credentials and token endpoint
       tokenUrl     = 'https://api.instagram.com/oauth/access_token'
-      clientId     = process.env.FACEBOOK_APP_ID
-      clientSecret = process.env.FACEBOOK_APP_SECRET
+      clientId     = process.env.INSTAGRAM_APP_ID
+      clientSecret = process.env.INSTAGRAM_APP_SECRET
       break
     case 'google':
       tokenUrl     = 'https://oauth2.googleapis.com/token'
@@ -136,6 +137,9 @@ export async function GET(
       refresh_token: tokens.refresh_token ?? null,
       expires_at:    expiresAt,
       connected_at:  new Date().toISOString(),
+      // user_id is returned by Instagram Business Login and used by
+      // deauthorize/deletion webhooks to look up the account
+      ...(tokens.user_id ? { user_id: tokens.user_id } : {}),
     },
   }
 

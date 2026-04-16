@@ -38,8 +38,8 @@ const CHANNEL_DEFS: ChannelDef[] = [
 // Providers that are currently configured (have client IDs set)
 const CONFIGURED_PROVIDERS = new Set(
   [
-    process.env.FACEBOOK_APP_ID  ? 'meta'     : null,
-    process.env.FACEBOOK_APP_ID  ? 'instagram': null,
+    process.env.FACEBOOK_APP_ID   ? 'meta'      : null,
+    process.env.INSTAGRAM_APP_ID  ? 'instagram' : null,
     process.env.GOOGLE_CLIENT_ID ? 'google'   : null,
     process.env.LINKEDIN_CLIENT_ID ? 'linkedin': null,
   ].filter(Boolean) as string[]
