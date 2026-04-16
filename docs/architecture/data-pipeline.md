@@ -194,6 +194,6 @@ Each stage checks `week_start = current_week()` before inserting. Duplicate runs
 ## Monitoring
 
 - Railway dashboard: cron run history + logs per stage
-- Supabase: `pipeline_runs` table (to be added) tracks start/end/status per stage
+- Supabase: pipeline run status is tracked via Railway logs per stage (no dedicated pipeline_runs table in V1)
 - Slack alerts: `#pipeline-alerts` webhook for failures
-- Admin dashboard: `/admin/briefs` shows brief status (draft / flagged / sent) across all accounts
+- Admin dashboard: `/admin/briefs` shows brief status (`pending` / `assembled` / `held` / `sent` / `failed`) across all accounts; flags briefs with signals below 0.70 confidence

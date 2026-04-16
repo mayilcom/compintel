@@ -28,6 +28,9 @@ const run = await apifyClient.actor('apify/instagram-scraper').call({
 const { items } = await apifyClient.dataset(run.defaultDatasetId).listItems()
 ```
 
+### Required env var
+`APIFY_API_TOKEN` — set in Railway collector service only (not needed in the Vercel web app).
+
 ### Rate limits
 - Apify runs actors in parallel — no per-account rate limit on our end
 - Instagram may throttle if too many concurrent runs; stagger with 2–5s delay between accounts

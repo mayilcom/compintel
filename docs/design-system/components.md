@@ -135,6 +135,21 @@ Same active/inactive pattern as AppNav.
 
 ---
 
+## DisconnectButton
+
+**File:** `src/components/settings/disconnect-button.tsx`  
+**Type:** `'use client'` — uses `useRouter()`
+
+Renders a "Disconnect" button for an OAuth-connected provider on the Channels settings page. Used inside the server-rendered channels page as a client island.
+
+```tsx
+<DisconnectButton provider="meta" />
+```
+
+On click: `POST /api/oauth/disconnect` with `{ provider }`, then `router.refresh()` to reload the page.
+
+---
+
 ## OnboardingProgressBar
 
 **File:** `src/components/onboarding/progress-bar.tsx`

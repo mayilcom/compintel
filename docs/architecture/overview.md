@@ -113,9 +113,14 @@ src/
 │   ├── dashboard/                  WeeklyStatusCard, CompetitorTable, CompetitorSuggestions
 │   ├── onboarding/                 ProgressBar
 │   ├── settings/team-invite-form.tsx
+│   ├── settings/disconnect-button.tsx  OAuth disconnect ('use client')
 │   └── upgrade/plan-cards.tsx
 ├── lib/
-│   ├── utils.ts                    cn(), formatCurrency(), PLAN_LIMITS, SIGNAL_LABELS
+│   ├── utils.ts                    cn(), formatCurrency(), PLAN_LIMITS, SIGNAL_LABELS,
+│   │                               weekRangeLabel(), normalizeSources()
+│   ├── constants.ts                BriefStatus, BRIEF_STATUS_VARIANT, BRIEF_STATUS_LABEL,
+│   │                               BRIEF_VARIANT_LABELS
+│   ├── types.ts                    DbBrand, DbRecipient (shared across settings pages)
 │   ├── platforms.ts                PLATFORMS list + helpers (defaultPlatformsFor,
 │   │                               buildChannels, parseChannels, extractHandle)
 │   └── supabase/
@@ -135,7 +140,7 @@ supabase/
 
 docs/
 ├── architecture/
-├── decisions/                      ADR-001–ADR-009
+├── decisions/                      ADR-001–ADR-011
 ├── design-system/
 ├── runbooks/
 └── changelog/CHANGELOG.md
@@ -162,7 +167,7 @@ Sun 7am IST   Delivery — Resend → recipient inboxes
 
 - **All database tables have RLS** — zero exceptions. Row policies filter by `auth.uid()` → `account_id`.
 - **Service role key** used only by Railway workers (bypasses RLS; workers are trusted processes).
-- **Admin pages** use a separate cookie-based auth (`mayil_admin_token`) checked in `proxy.ts`. Not Clerk.
+- **Admin pages** use a separate cookie-based auth (`mayil_admin_session`) checked in `proxy.ts`. Not Clerk.
 - **Webhook endpoints** verify HMAC signatures from Razorpay and `stripe.webhooks.constructEvent` from Stripe before processing.
 - **Environment secrets** in Vercel (prod) and `.env.local` (dev). Never committed.
 - **VPN abuse prevention**: Three layers — Razorpay Indian-only payment methods, IPQualityScore on pricing page, BIN verification in Stripe webhook.

@@ -5,6 +5,22 @@ Format: `[version] YYYY-MM-DD — Description`
 
 ---
 
+## [0.1.21] 2026-04-15 — Documentation audit: correct stale statuses, cookie name, APIFY env var, add DisconnectButton
+
+### Changed
+
+- **`docs/runbooks/brief-editor.md`** — major rewrite. Removed references to nonexistent `flagged` and `approved` statuses. Removed description of in-app edit UI (not implemented in V1 — page is read-only). Added status reference table with the real DB values (`pending`, `assembled`, `held`, `sent`, `failed`). Documented the actual V1 workflow: review in `/admin/briefs`, make edits directly in Supabase, set `status = 'held'` to block delivery.
+
+- **`docs/architecture/overview.md`** — fixed admin cookie name from `mayil_admin_token` to `mayil_admin_session` (matches `proxy.ts`). Updated ADR count from ADR-001–ADR-009 to ADR-001–ADR-011. Added `lib/constants.ts`, `lib/types.ts` to project structure. Added `settings/disconnect-button.tsx` to components list.
+
+- **`docs/architecture/data-pipeline.md`** — removed reference to nonexistent `pipeline_runs` table (tracking is via Railway logs in V1). Fixed admin dashboard status list to match real DB values.
+
+- **`docs/architecture/api-integrations.md`** — added "Required env var" note for Apify: `APIFY_API_TOKEN` (matching `railway.toml`; not `APIFY_API_KEY`).
+
+- **`docs/design-system/components.md`** — added `DisconnectButton` entry documenting the client island at `src/components/settings/disconnect-button.tsx`.
+
+---
+
 ## [0.1.20] 2026-04-16 — Pending tasks: admin briefs list, OAuth channels, Railway runbook, favicon
 
 ### Added
