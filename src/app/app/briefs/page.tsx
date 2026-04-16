@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import { createServiceClient } from '@/lib/supabase/server'
+import { weekRangeLabel } from '@/lib/utils'
 
 export const metadata = { title: 'Briefs' }
 
@@ -15,14 +16,6 @@ const SIGNAL_DOT_COLOURS: Record<string, string> = {
   opportunity: 'bg-opportunity',
   trend:       'bg-trend',
   silence:     'bg-silence',
-}
-
-function weekRangeLabel(weekStart: string): string {
-  const start = new Date(weekStart)
-  const end   = new Date(weekStart)
-  end.setUTCDate(end.getUTCDate() + 6)
-  const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' }
-  return `${start.toLocaleDateString('en-IN', opts)}–${end.toLocaleDateString('en-IN', { day: 'numeric', year: 'numeric' })}`
 }
 
 export default async function BriefsPage() {

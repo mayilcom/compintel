@@ -1,11 +1,9 @@
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import Link from 'next/link'
+import { BRIEF_STATUS_VARIANT, BRIEF_STATUS_LABEL, type BriefStatus } from '@/lib/constants'
 
 export const metadata = { title: 'Briefs — Admin' }
-
-// Status names match the DB schema exactly (briefs.status CHECK constraint)
-type BriefStatus = 'pending' | 'assembled' | 'held' | 'sent' | 'failed'
 
 interface AdminBrief {
   id: string
@@ -17,22 +15,6 @@ interface AdminBrief {
   signalCount: number
   assembledAt: string
   lowConfidence?: boolean   // true when AI confidence < 0.7 — flag for review
-}
-
-const STATUS_VARIANT: Record<BriefStatus, 'default' | 'threat' | 'opportunity' | 'watch' | 'silence'> = {
-  pending:   'silence',
-  assembled: 'watch',
-  held:      'threat',
-  sent:      'opportunity',
-  failed:    'threat',
-}
-
-const STATUS_LABEL: Record<BriefStatus, string> = {
-  pending:   'Pending',
-  assembled: 'Assembled',
-  held:      'Held',
-  sent:      'Sent',
-  failed:    'Failed',
 }
 
 const MOCK_BRIEFS: AdminBrief[] = [
@@ -158,8 +140,8 @@ export default function AdminBriefsPage({
                   {brief.assembledAt !== '—' && ` · Assembled ${brief.assembledAt}`}
                 </p>
               </div>
-              <Badge variant={STATUS_VARIANT[brief.status]} className="text-[10px] shrink-0">
-                {STATUS_LABEL[brief.status]}
+              <Badge variant={BRIEF_STATUS_VARIANT[brief.status]} className="text-[10px] shrink-0">
+                {BRIEF_STATUS_LABEL[brief.status]}
               </Badge>
             </Link>
           ))}

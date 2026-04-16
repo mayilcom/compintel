@@ -5,19 +5,11 @@ import { redirect, notFound } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { createServiceClient } from '@/lib/supabase/server'
-import { normalizeSources } from '@/lib/utils'
+import { normalizeSources, weekRangeLabel } from '@/lib/utils'
 import { SignalCard } from '@/components/brief/signal-card'
 import type { SignalCardData } from '@/components/brief/signal-card'
 
 export const metadata = { title: 'Brief' }
-
-function weekRangeLabel(weekStart: string): string {
-  const start = new Date(weekStart)
-  const end   = new Date(weekStart)
-  end.setUTCDate(end.getUTCDate() + 6)
-  const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' }
-  return `${start.toLocaleDateString('en-IN', opts)}–${end.toLocaleDateString('en-IN', { day: 'numeric', year: 'numeric' })}`
-}
 
 export default async function BriefDetailPage({
   params,

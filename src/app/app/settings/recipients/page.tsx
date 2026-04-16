@@ -8,14 +8,9 @@ import { Badge } from '@/components/ui/badge'
 import { UpgradeModal } from '@/components/upgrade-modal'
 import { type Plan } from '@/lib/utils'
 import type { DbRecipient } from '@/lib/types'
+import { BRIEF_BRIEF_VARIANT_LABELS } from '@/lib/constants'
 
 type Recipient = DbRecipient
-
-const VARIANT_LABELS: Record<string, string> = {
-  full:             'Full brief',
-  channel_focus:    'Channel focus',
-  executive_digest: 'Executive digest',
-}
 
 export default function RecipientsSettingsPage() {
   const router = useRouter()
@@ -175,7 +170,7 @@ export default function RecipientsSettingsPage() {
                 </div>
                 <div className="flex items-center gap-3">
                   <Badge variant="default" className="text-[10px]">
-                    {VARIANT_LABELS[r.brief_variant] ?? r.brief_variant}
+                    {BRIEF_VARIANT_LABELS[r.brief_variant] ?? r.brief_variant}
                   </Badge>
                   <button
                     onClick={() => handleRemove(r.recipient_id)}

@@ -1,18 +1,11 @@
-export const dynamic = 'force-dynamic'
+// Sent briefs are immutable — cache for 1 hour, revalidate on demand
+export const revalidate = 3600
 
 import { notFound } from 'next/navigation'
 import { createServiceClient } from '@/lib/supabase/server'
-import { normalizeSources } from '@/lib/utils'
+import { normalizeSources, weekRangeLabel } from '@/lib/utils'
 import { SignalCard } from '@/components/brief/signal-card'
 import type { SignalCardData } from '@/components/brief/signal-card'
-
-function weekRangeLabel(weekStart: string): string {
-  const start = new Date(weekStart)
-  const end   = new Date(weekStart)
-  end.setUTCDate(end.getUTCDate() + 6)
-  const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' }
-  return `${start.toLocaleDateString('en-IN', opts)}–${end.toLocaleDateString('en-IN', { day: 'numeric', year: 'numeric' })}`
-}
 
 export default async function PublicBriefPage({
   params,

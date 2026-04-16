@@ -5,6 +5,34 @@ Format: `[version] YYYY-MM-DD — Description`
 
 ---
 
+## [0.1.19] 2026-04-16 — Efficiency & architecture improvements: 7 issues resolved
+
+### Added
+
+- **`src/lib/constants.ts`** — new shared constants file. Exports `BriefStatus` type, `BRIEF_STATUS_VARIANT` (status → Badge variant map), `BRIEF_STATUS_LABEL` (status → display string), and `BRIEF_VARIANT_LABELS` (variant → display string). Eliminates magic strings duplicated across admin and onboarding pages.
+
+- **Error boundaries** — `error.tsx` added to `src/app/app/dashboard/`, `src/app/app/briefs/`, and `src/app/admin/briefs/`. Previously a Supabase failure would crash the whole page with a 500; now shows a user-friendly message with a "Try again" button.
+
+- **Loading skeletons** — `loading.tsx` added to the same three route segments. Users now see an instant skeleton UI instead of a blank page on slow connections.
+
+### Changed
+
+- **`src/lib/utils.ts`** — added `weekRangeLabel(weekStart: string): string` export. The same 7-line function was duplicated verbatim in 5 page files; all five now import from here.
+
+- **`apps/workers/src/workers/delivery.ts`** — eliminated N+1 DB queries in the delivery loop. Previously: 2 queries per brief (1× accounts + 1× recipients) = 2N round-trips. Now: 2 bulk queries (`.in('account_id', accountIds)`) before the loop, then O(1) Map lookups inside. For 50 accounts that's 100 queries → 2.
+
+- **`src/app/brief/[brief_id]/page.tsx`** — replaced `force-dynamic` with `revalidate = 3600`. Sent briefs are immutable; caching them for 1 hour eliminates redundant Supabase reads on every public brief view without any staleness risk.
+
+- **`src/app/api/onboarding/brand/route.ts`** — parallelized the `accounts.update(meta)` + `brands.select(existingBrand)` calls using `Promise.all`. These are independent queries that were previously sequential.
+
+### Refactored
+
+- `src/app/admin/briefs/page.tsx` — imports `BRIEF_STATUS_VARIANT`, `BRIEF_STATUS_LABEL`, `BriefStatus` from `lib/constants` instead of defining them locally.
+- `src/app/app/settings/recipients/page.tsx` and `src/app/onboarding/recipients/page.tsx` — import `BRIEF_VARIANT_LABELS` from `lib/constants` instead of defining a local `VARIANT_LABELS` map.
+- `src/app/app/dashboard/page.tsx`, `src/app/app/briefs/page.tsx`, `src/app/app/briefs/[brief_id]/page.tsx`, `src/app/brief/[brief_id]/page.tsx`, `src/app/admin/briefs/[brief_id]/page.tsx` — removed local `weekRangeLabel` definitions; import from `lib/utils`.
+
+---
+
 ## [0.1.18] 2026-04-15 — Codebase audit: 9 bug fixes across webhooks, brief pages, admin editor
 
 ### Fixed

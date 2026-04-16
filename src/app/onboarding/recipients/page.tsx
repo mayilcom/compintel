@@ -6,6 +6,7 @@ import { OnboardingProgress } from '@/components/onboarding/progress-bar'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { BRIEF_BRIEF_VARIANT_LABELS } from '@/lib/constants'
 
 interface Recipient {
   recipient_id: string
@@ -13,12 +14,6 @@ interface Recipient {
   email: string
   brief_variant: string
   active: boolean
-}
-
-const VARIANT_LABELS: Record<string, string> = {
-  full:             'Full brief',
-  channel_focus:    'Channel focus',
-  executive_digest: 'Executive digest',
 }
 
 const VARIANTS = [
@@ -161,7 +156,7 @@ export default function OnboardingRecipientsPage() {
                   <p className="text-[11px] text-muted">{r.email}</p>
                 </div>
                 <Badge variant="default" className="text-[10px]">
-                  {VARIANT_LABELS[r.brief_variant] ?? r.brief_variant}
+                  {BRIEF_VARIANT_LABELS[r.brief_variant] ?? r.brief_variant}
                 </Badge>
               </div>
             ))}

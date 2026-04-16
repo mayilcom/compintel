@@ -95,6 +95,18 @@ export const PLAN_LIMITS = {
 export type Plan = keyof typeof PLAN_LIMITS
 
 /**
+ * Format a week_start date string (YYYY-MM-DD) as "Apr 7–13, 2026".
+ * Single source of truth — used by dashboard, briefs list, brief detail, and admin pages.
+ */
+export function weekRangeLabel(weekStart: string): string {
+  const start = new Date(weekStart)
+  const end   = new Date(weekStart)
+  end.setUTCDate(end.getUTCDate() + 6)
+  const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' }
+  return `${start.toLocaleDateString('en-IN', opts)}–${end.toLocaleDateString('en-IN', { day: 'numeric', year: 'numeric' })}`
+}
+
+/**
  * Normalize the `sources` JSONB column to a plain string array.
  * The worker may write either string[] or {url, title?}[] — both are valid.
  */

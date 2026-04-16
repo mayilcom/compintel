@@ -44,16 +44,40 @@ async function run() {
   let skipped = 0
   let failed  = 0
 
+  // ── Bulk-fetch accounts and recipients before the loop ────────
+  // Avoids N+1: 2 queries for all accounts instead of 2×N queries
+  const accountIds = (briefs as Array<Record<string, unknown>>).map(b => b.account_id as string)
+
+  const { data: accountRows } = await db
+    .from('accounts')
+    .select('account_id, plan, subscription_status, is_locked, delivery_paused, skip_next_delivery, trial_brief_sent')
+    .in('account_id', accountIds)
+
+  const { data: recipientRows } = await db
+    .from('recipients')
+    .select('*')
+    .in('account_id', accountIds)
+    .eq('active', true)
+
+  type AccountRow   = Record<string, unknown>
+  type RecipientRow = Record<string, unknown>
+
+  const accountMap   = new Map<string, AccountRow>(
+    (accountRows ?? []).map((a: AccountRow) => [a.account_id as string, a])
+  )
+  const recipientMap = new Map<string, RecipientRow[]>()
+  for (const r of (recipientRows ?? []) as RecipientRow[]) {
+    const aid = r.account_id as string
+    if (!recipientMap.has(aid)) recipientMap.set(aid, [])
+    recipientMap.get(aid)!.push(r)
+  }
+
   for (const brief of briefs as Array<Record<string, unknown>>) {
     const briefId   = brief.brief_id as string
     const accountId = brief.account_id as string
 
     // Check account still active (race-condition safety)
-    const { data: account } = await db
-      .from('accounts')
-      .select('plan, subscription_status, is_locked, delivery_paused, skip_next_delivery, trial_brief_sent')
-      .eq('account_id', accountId)
-      .single()
+    const account = accountMap.get(accountId)
 
     if (!account) { skipped++; continue }
 
@@ -76,14 +100,10 @@ async function run() {
       continue
     }
 
-    // Load active recipients
-    const { data: recipients, error: recErr } = await db
-      .from('recipients')
-      .select('*')
-      .eq('account_id', accountId)
-      .eq('active', true)
+    // Load active recipients from pre-fetched map
+    const recipients = recipientMap.get(accountId)
 
-    if (recErr || !recipients?.length) {
+    if (!recipients?.length) {
       log.warn('no recipients', { account_id: accountId })
       skipped++
       continue

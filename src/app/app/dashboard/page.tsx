@@ -9,6 +9,7 @@ import { WeeklyStatusCard } from '@/components/dashboard/weekly-status-card'
 import { CompetitorTable } from '@/components/dashboard/competitor-table'
 import type { CompetitorRow } from '@/components/dashboard/competitor-table'
 import { createServiceClient } from '@/lib/supabase/server'
+import { weekRangeLabel } from '@/lib/utils'
 import Link from 'next/link'
 
 export const metadata = { title: 'Dashboard' }
@@ -25,14 +26,6 @@ function prevWeekStart(weekStart: string): string {
   const d = new Date(weekStart)
   d.setUTCDate(d.getUTCDate() - 7)
   return d.toISOString().slice(0, 10)
-}
-
-function weekRangeLabel(weekStart: string): string {
-  const start = new Date(weekStart)
-  const end   = new Date(weekStart)
-  end.setUTCDate(end.getUTCDate() + 6)
-  const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' }
-  return `${start.toLocaleDateString('en-IN', opts)}–${end.toLocaleDateString('en-IN', { day: 'numeric', year: 'numeric' })}`
 }
 
 export default async function DashboardPage() {

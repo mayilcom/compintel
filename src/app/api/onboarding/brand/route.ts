@@ -100,23 +100,26 @@ export async function POST(req: NextRequest) {
     accountId = (existing as { account_id: string }).account_id
   }
 
-  // ── Update account meta ────────────────────────────────────────
-  await db
-    .from('accounts')
-    .update({
-      category: dbCategory,
-      market:   market as string,
-      ...(country && typeof country === 'string' ? { country } : {}),
-    })
-    .eq('account_id', accountId)
+  // ── Update account meta + look up existing brand in parallel ──
+  const [, existingBrandResult] = await Promise.all([
+    db
+      .from('accounts')
+      .update({
+        category: dbCategory,
+        market:   market as string,
+        ...(country && typeof country === 'string' ? { country } : {}),
+      })
+      .eq('account_id', accountId),
+    db
+      .from('brands')
+      .select('brand_id')
+      .eq('account_id', accountId)
+      .eq('is_client', true)
+      .maybeSingle(),
+  ])
 
   // ── Upsert client brand ────────────────────────────────────────
-  const { data: existingBrand } = await db
-    .from('brands')
-    .select('brand_id')
-    .eq('account_id', accountId)
-    .eq('is_client', true)
-    .maybeSingle()
+  const existingBrand = existingBrandResult.data
 
   let result
   if (existingBrand) {
