@@ -37,7 +37,7 @@ function getProviderConfig(provider: string, redirectUri: string): ProviderConfi
       return {
         authUrl:  'https://www.linkedin.com/oauth/v2/authorization',
         clientId: process.env.LINKEDIN_CLIENT_ID,
-        scope:    'r_organization_social,r_ads',
+        scope:    'r_dma_admin_pages_content',
       }
     default:
       return null

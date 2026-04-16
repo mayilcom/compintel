@@ -267,13 +267,13 @@ User clicks Disconnect → POST /api/oauth/disconnect { provider }
 | `meta` | `meta` | `ads_read`, `pages_read_engagement` | `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET` |
 | `instagram` | `instagram` | `instagram_basic`, `instagram_manage_insights` | `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET` |
 | `google` | `google` | AdWords read-only, YouTube Analytics read-only | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
-| `linkedin` | `linkedin` | `r_organization_social`, `r_ads` | `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET` |
+| `linkedin` | `linkedin` | `r_dma_admin_pages_content` | `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET` |
 
 ### Provider app setup notes
 
 **Google** — developer token is provisioned. `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` in Vercel env vars is sufficient to activate the Connect button.
 
-**LinkedIn** — the Marketing Developer Platform product (required for company page/ad data) cannot be added to a multi-product app. Create a **dedicated LinkedIn app** solely for this product. Use that app's client ID/secret as `LINKEDIN_CLIENT_ID`/`LINKEDIN_CLIENT_SECRET`.
+**LinkedIn** — uses the **Pages Data Portability API** (`r_dma_admin_pages_content`) for company page posts, follower counts, and engagement metrics. This product cannot coexist with Marketing Developer Platform on the same app; a **dedicated LinkedIn app** is required. `LINKEDIN_CLIENT_ID`/`LINKEDIN_CLIENT_SECRET` point to this dedicated app — separate from the Sign In with LinkedIn app used by Clerk for authentication.
 
 **Meta** — `ads_read` scope requires App Review before non-test users can connect. Test users can be added under the app's Roles while in development mode.
 

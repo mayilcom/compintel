@@ -5,6 +5,16 @@ Format: `[version] YYYY-MM-DD — Description`
 
 ---
 
+## [0.1.22] 2026-04-16 — LinkedIn OAuth: switch to Pages Data Portability API
+
+### Changed
+
+- **`src/app/api/oauth/[provider]/init/route.ts`** — LinkedIn OAuth scope changed from `r_organization_social,r_ads` (Marketing Developer Platform) to `r_dma_admin_pages_content` (Pages Data Portability API). The Marketing Developer Platform product cannot coexist with other products on the same LinkedIn app; the Pages Data Portability API provides the same company page data (posts, follower counts, engagement) and can be added to a dedicated app alongside Clerk's Sign In with LinkedIn app. `LINKEDIN_CLIENT_ID`/`LINKEDIN_CLIENT_SECRET` env vars now point to the new dedicated app.
+
+- **`docs/architecture/api-integrations.md`** — updated LinkedIn scope and provider setup note to reflect the Pages Data Portability API and dedicated app requirement.
+
+---
+
 ## [0.1.21] 2026-04-15 — Documentation audit: correct stale statuses, cookie name, APIFY env var, add DisconnectButton
 
 ### Changed
