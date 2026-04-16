@@ -45,6 +45,7 @@
 | [ADR-008](decisions/ADR-008-shadcn-component-model.md) | shadcn/ui copy-into-codebase model |
 | [ADR-009](decisions/ADR-009-railway-workers.md) | Railway for background workers |
 | [ADR-010](decisions/ADR-010-checkout-json-response.md) | Checkout API returns JSON for both Razorpay and Stripe |
+| [ADR-011](decisions/ADR-011-oauth-channel-connections.md) | OAuth 2.0 Authorization Code Flow for channel connections |
 
 ## Runbooks
 
@@ -54,6 +55,7 @@
 | [Brief Editor](runbooks/brief-editor.md) | Manual brief review, editing before delivery |
 | [Trial Extension](runbooks/trial-extension.md) | Extending trials, one-off brief sends |
 | [Brand Lookup](runbooks/brand-lookup.md) | Adding/editing brands in the auto-discovery table |
+| [Railway Deployment](runbooks/railway-deployment.md) | Creating and configuring the 7 Railway cron services |
 
 ## Changelog
 

@@ -5,6 +5,34 @@ Format: `[version] YYYY-MM-DD — Description`
 
 ---
 
+## [0.1.20] 2026-04-16 — Pending tasks: admin briefs list, OAuth channels, Railway runbook, favicon
+
+### Added
+
+- **OAuth channel connections** (`src/app/api/oauth/[provider]/init/route.ts`, `callback/route.ts`, `disconnect/route.ts`) — full Authorization Code Flow for Meta, Instagram, Google, and LinkedIn. Init route generates a CSRF state token stored in an HttpOnly cookie and redirects to the provider. Callback validates state, exchanges the code for tokens, and stores them in `accounts.oauth_tokens`. Disconnect route removes a provider key. See ADR-011.
+
+- **`src/components/settings/disconnect-button.tsx`** — client component that calls `POST /api/oauth/disconnect` and calls `router.refresh()` on success. Extracted as a client island so the channels page stays a server component.
+
+- **`docs/runbooks/railway-deployment.md`** — step-by-step guide for creating the 7 Railway cron services: service names, `WORKER_NAME` values, UTC cron schedules, required env vars per service, how to verify a manual run, and rollback instructions.
+
+- **`docs/decisions/ADR-011-oauth-channel-connections.md`** — records the decision to use OAuth 2.0 Authorization Code Flow with token storage in `accounts.oauth_tokens` JSONB. Covers CSRF protection, provider config, and V2 improvements needed (refresh token rotation, application-level encryption).
+
+- **`public/favicon.svg`** — restored from git history (gold rounded square with white M, matches brand tokens).
+
+### Changed
+
+- **`src/app/app/settings/channels/page.tsx`** — Connect buttons are now live links to `/api/oauth/[provider]/init` when the provider's env vars are configured (`FACEBOOK_APP_ID`, `GOOGLE_CLIENT_ID`, `LINKEDIN_CLIENT_ID`). If env vars are missing, the button remains disabled. Connected channels show a Disconnect button (client island). `searchParams` typed as `Promise<...>` (Next.js 16). Success/error banners shown on redirect back from OAuth.
+
+- **`src/app/admin/briefs/page.tsx`** — replaced mock data (hardcoded Sunfeast/Acme/Demo briefs) with real Supabase fetch. Fetches all briefs across all accounts ordered by `created_at DESC`, bulk-fetches account `company_name`/`email` for display, detects low-confidence signals (any `confidence < 0.70`) with a single `.lt()` query, computes per-tab counts from the result set. `searchParams` typed as `Promise<...>`.
+
+- **`.env.local.example`** — added OAuth provider credentials section with `FACEBOOK_APP_ID/SECRET`, `GOOGLE_CLIENT_ID/SECRET`, `LINKEDIN_CLIENT_ID/SECRET` and callback URL instructions.
+
+- **`docs/architecture/api-integrations.md`** — added OAuth Channel Connections section documenting the flow, supported providers, scopes, required env vars, and connect button behaviour.
+
+- **`docs/README.md`** — added ADR-011 and Railway Deployment runbook to their respective index tables.
+
+---
+
 ## [0.1.19] 2026-04-16 — Efficiency & architecture improvements: 7 issues resolved
 
 ### Added

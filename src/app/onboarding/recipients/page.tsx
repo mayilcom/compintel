@@ -6,7 +6,7 @@ import { OnboardingProgress } from '@/components/onboarding/progress-bar'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { BRIEF_BRIEF_VARIANT_LABELS } from '@/lib/constants'
+import { BRIEF_VARIANT_LABELS } from '@/lib/constants'
 
 interface Recipient {
   recipient_id: string

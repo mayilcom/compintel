@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { UpgradeModal } from '@/components/upgrade-modal'
 import { type Plan } from '@/lib/utils'
 import type { DbRecipient } from '@/lib/types'
-import { BRIEF_BRIEF_VARIANT_LABELS } from '@/lib/constants'
+import { BRIEF_VARIANT_LABELS } from '@/lib/constants'
 
 type Recipient = DbRecipient
 

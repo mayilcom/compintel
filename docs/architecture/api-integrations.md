@@ -234,6 +234,50 @@ return data
 
 ---
 
+## OAuth Channel Connections
+
+**Purpose:** Allow accounts to connect Meta, Instagram, Google Ads, LinkedIn, and YouTube via OAuth for richer data collection  
+**Routes:** `GET /api/oauth/[provider]/init`, `GET /api/oauth/[provider]/callback`, `POST /api/oauth/disconnect`  
+**Storage:** `accounts.oauth_tokens` JSONB — one key per provider (`meta`, `instagram`, `google`, `linkedin`)  
+**Decision:** See [ADR-011](../decisions/ADR-011-oauth-channel-connections.md)
+
+### Flow
+
+```
+User clicks Connect → /api/oauth/[provider]/init
+  → generates state token, sets HttpOnly cookie
+  → redirects to provider auth URL
+
+Provider redirects back → /api/oauth/[provider]/callback
+  → validates state cookie, exchanges code for tokens
+  → stores tokens in accounts.oauth_tokens
+  → redirects to /app/settings/channels?connected=[provider]
+
+User clicks Disconnect → POST /api/oauth/disconnect { provider }
+  → removes provider key from accounts.oauth_tokens
+```
+
+### Supported providers
+
+| Provider param | oauthKey | Scopes | Env vars needed |
+|---|---|---|---|
+| `meta` | `meta` | `ads_read`, `pages_read_engagement` | `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET` |
+| `instagram` | `instagram` | `instagram_basic`, `instagram_manage_insights` | `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET` |
+| `google` | `google` | AdWords read-only, YouTube Analytics read-only | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
+| `linkedin` | `linkedin` | `r_organization_social`, `r_ads` | `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET` |
+
+### Connect button behaviour
+
+- If provider env vars are set → **Connect** button links to init route
+- If provider env vars are missing → button is disabled ("Coming soon")
+- If already connected → **Disconnect** button (client-side fetch to disconnect route)
+
+### V2 improvements needed
+- Proactive refresh token rotation before expiry
+- Application-level encryption of token values in the JSONB column
+
+---
+
 ## Google Sheets (future)
 
 A future integration will allow accounts to export their signal history to a Google Sheet for their own analysis. Not in V1.

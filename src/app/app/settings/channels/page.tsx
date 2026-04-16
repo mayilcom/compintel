@@ -6,31 +6,44 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { createServiceClient } from '@/lib/supabase/server'
 import { PLAN_LIMITS, type Plan } from '@/lib/utils'
+import { DisconnectButton } from '@/components/settings/disconnect-button'
+import Link from 'next/link'
 
 export const metadata = { title: 'Channels — Settings' }
 
 type ChannelStatus = 'connected' | 'disconnected' | 'auto'
 
 interface ChannelDef {
-  id:           string
-  name:         string
-  description:  string
-  oauthKey:     string | null   // key in accounts.oauth_tokens — null = no OAuth needed
-  autoLabel?:   string          // label for auto-enabled channels
-  tier:         'all' | 'growth' | 'agency'
+  id:          string
+  name:        string
+  description: string
+  oauthKey:    string | null   // key in accounts.oauth_tokens — null = no OAuth needed
+  oauthProvider?: string       // init route provider param (may differ from oauthKey)
+  autoLabel?:  string
+  tier:        'all' | 'growth' | 'agency'
 }
 
 const CHANNEL_DEFS: ChannelDef[] = [
-  { id: 'meta_ads',   name: 'Meta Ads Library',               description: 'Active ads, creative formats, and campaign dates across Facebook and Instagram.', oauthKey: 'meta',    tier: 'all'    },
-  { id: 'instagram',  name: 'Instagram',                       description: 'Organic post frequency, engagement rate, and story activity.',                     oauthKey: 'instagram', tier: 'all'  },
-  { id: 'google_ads', name: 'Google Ads',                      description: 'Ad spend, impression share, and search term data for competitors.',                oauthKey: 'google',  tier: 'all'    },
-  { id: 'linkedin',   name: 'LinkedIn',                        description: 'Company page posts, follower growth, and job postings as a signal.',               oauthKey: 'linkedin', tier: 'growth' },
-  { id: 'youtube',    name: 'YouTube',                         description: 'Video upload cadence, view velocity, and paid promotion detection.',               oauthKey: 'google',  tier: 'growth' },
-  { id: 'twitter',    name: 'X (Twitter)',                     description: 'Brand mentions, campaign hashtags, and influencer activity.',                      oauthKey: 'twitter', tier: 'agency' },
-  { id: 'amazon',     name: 'Amazon / Quick Commerce',         description: 'Product ratings, review volume, and pricing across Blinkit, Swiggy Instamart.',   oauthKey: null, autoLabel: 'Tracked via ASIN list', tier: 'all' },
-  { id: 'news',       name: 'News & PR',                       description: 'Press coverage, funding announcements, and product launches via RSS + Google News.', oauthKey: null, autoLabel: 'Auto-enabled for all brands', tier: 'all' },
-  { id: 'google_search', name: 'Google Search Trends',         description: 'Search interest, trending queries, and brand mention velocity.',                   oauthKey: null, autoLabel: 'Auto-enabled via public data', tier: 'all' },
+  { id: 'meta_ads',      name: 'Meta Ads Library',          description: 'Active ads, creative formats, and campaign dates across Facebook and Instagram.', oauthKey: 'meta',      oauthProvider: 'meta',      tier: 'all'    },
+  { id: 'instagram',     name: 'Instagram',                  description: 'Organic post frequency, engagement rate, and story activity.',                     oauthKey: 'instagram', oauthProvider: 'instagram', tier: 'all'    },
+  { id: 'google_ads',    name: 'Google Ads',                 description: 'Ad spend, impression share, and search term data for competitors.',                oauthKey: 'google',    oauthProvider: 'google',    tier: 'all'    },
+  { id: 'linkedin',      name: 'LinkedIn',                   description: 'Company page posts, follower growth, and job postings as a signal.',               oauthKey: 'linkedin',  oauthProvider: 'linkedin',  tier: 'growth' },
+  { id: 'youtube',       name: 'YouTube',                    description: 'Video upload cadence, view velocity, and paid promotion detection.',               oauthKey: 'google',    oauthProvider: 'google',    tier: 'growth' },
+  { id: 'twitter',       name: 'X (Twitter)',                description: 'Brand mentions, campaign hashtags, and influencer activity.',                      oauthKey: 'twitter',   oauthProvider: 'twitter',   tier: 'agency' },
+  { id: 'amazon',        name: 'Amazon / Quick Commerce',    description: 'Product ratings, review volume, and pricing across Blinkit, Swiggy Instamart.',   oauthKey: null, autoLabel: 'Tracked via ASIN list',          tier: 'all'    },
+  { id: 'news',          name: 'News & PR',                  description: 'Press coverage, funding announcements, and product launches via RSS + Google News.', oauthKey: null, autoLabel: 'Auto-enabled for all brands',  tier: 'all'    },
+  { id: 'google_search', name: 'Google Search Trends',       description: 'Search interest, trending queries, and brand mention velocity.',                   oauthKey: null, autoLabel: 'Auto-enabled via public data',  tier: 'all'    },
 ]
+
+// Providers that are currently configured (have client IDs set)
+const CONFIGURED_PROVIDERS = new Set(
+  [
+    process.env.FACEBOOK_APP_ID  ? 'meta'     : null,
+    process.env.FACEBOOK_APP_ID  ? 'instagram': null,
+    process.env.GOOGLE_CLIENT_ID ? 'google'   : null,
+    process.env.LINKEDIN_CLIENT_ID ? 'linkedin': null,
+  ].filter(Boolean) as string[]
+)
 
 const STATUS_CONFIG: Record<ChannelStatus, { label: string; dot: string }> = {
   connected:    { label: 'Connected',    dot: 'bg-opportunity' },
@@ -43,12 +56,17 @@ const TIER_LABELS: Record<string, string> = {
   agency: 'Agency',
 }
 
-export default async function ChannelsSettingsPage() {
+export default async function ChannelsSettingsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ connected?: string; error?: string }>
+}) {
   const { userId } = await auth()
   if (!userId) redirect('/sign-in')
 
-  const db = createServiceClient()
+  const { connected, error: oauthError } = await searchParams
 
+  const db = createServiceClient()
   const { data: account } = await db
     .from('accounts')
     .select('plan, oauth_tokens')
@@ -59,7 +77,7 @@ export default async function ChannelsSettingsPage() {
 
   const acc = account as { plan: string; oauth_tokens: Record<string, unknown> | null }
   const oauthTokens = acc.oauth_tokens ?? {}
-  const planLimits = PLAN_LIMITS[acc.plan as Plan] ?? PLAN_LIMITS.trial
+  const planLimits  = PLAN_LIMITS[acc.plan as Plan] ?? PLAN_LIMITS.trial
 
   function getStatus(ch: ChannelDef): ChannelStatus {
     if (ch.oauthKey === null) return 'auto'
@@ -85,6 +103,24 @@ export default async function ChannelsSettingsPage() {
           Mayil monitors these sources to detect competitor activity. Connect channels for richer signals.
         </p>
       </div>
+
+      {/* OAuth feedback banners */}
+      {connected && (
+        <div className="rounded-[10px] border border-opportunity/30 bg-[#EBF7EE] px-4 py-3">
+          <p className="text-[13px] text-opportunity font-medium">
+            {CHANNEL_DEFS.find(c => c.oauthProvider === connected)?.name ?? connected} connected successfully.
+          </p>
+        </div>
+      )}
+      {oauthError && (
+        <div className="rounded-[10px] border border-threat/30 bg-[#FDECEA] px-4 py-3">
+          <p className="text-[13px] text-threat">
+            {oauthError === 'access_denied'
+              ? 'Connection cancelled.'
+              : `Connection failed (${oauthError}). Please try again.`}
+          </p>
+        </div>
+      )}
 
       {/* Status summary */}
       <Card>
@@ -115,9 +151,12 @@ export default async function ChannelsSettingsPage() {
             <p className="label-section">Channels</p>
           </div>
           {CHANNEL_DEFS.map((ch) => {
-            const status  = getStatus(ch)
-            const locked  = isLocked(ch)
-            const cfg     = STATUS_CONFIG[status]
+            const status   = getStatus(ch)
+            const locked   = isLocked(ch)
+            const cfg      = STATUS_CONFIG[status]
+            const canOAuth = ch.oauthKey !== null && ch.oauthProvider !== undefined
+            const providerReady = canOAuth && CONFIGURED_PROVIDERS.has(ch.oauthProvider!)
+
             return (
               <div
                 key={ch.id}
@@ -140,22 +179,28 @@ export default async function ChannelsSettingsPage() {
                     <p className="text-[11px] text-opportunity mt-1">Connected</p>
                   )}
                 </div>
+
                 <div className="flex items-center gap-2 shrink-0 mt-0.5">
                   <div className="flex items-center gap-1.5">
                     <div className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
                     <span className="text-[11px] text-muted">{cfg.label}</span>
                   </div>
+
                   {locked ? (
-                    <a href={`/upgrade?reason=channels`}>
+                    <Link href="/upgrade?reason=channels">
                       <Button variant="outline" size="sm" className="ml-2 h-7 text-[11px]">Upgrade</Button>
-                    </a>
-                  ) : ch.oauthKey !== null ? (
+                    </Link>
+                  ) : canOAuth ? (
                     status === 'connected' ? (
-                      <button className="ml-2 text-[11px] text-muted hover:text-threat transition-colors">
-                        Disconnect
-                      </button>
+                      <DisconnectButton provider={ch.oauthKey!} />
+                    ) : providerReady ? (
+                      <Link href={`/api/oauth/${ch.oauthProvider}/init`}>
+                        <Button variant="outline" size="sm" className="ml-2 h-7 text-[11px]">
+                          Connect
+                        </Button>
+                      </Link>
                     ) : (
-                      <Button variant="outline" size="sm" className="ml-2 h-7 text-[11px]" disabled>
+                      <Button variant="outline" size="sm" className="ml-2 h-7 text-[11px]" disabled title="Coming soon">
                         Connect
                       </Button>
                     )
@@ -168,12 +213,12 @@ export default async function ChannelsSettingsPage() {
       </Card>
 
       <p className="text-[11px] text-muted px-1">
-        OAuth channel connections are read-only. We never post on your behalf.
-        Connect buttons will be enabled as OAuth flows are rolled out.{' '}
-        <a href="/app/settings/subscription" className="text-gold-dark hover:underline">
+        OAuth connections are read-only. We never post on your behalf.{' '}
+        <Link href="/app/settings/subscription" className="text-gold-dark hover:underline">
           View plan limits →
-        </a>
+        </Link>
       </p>
     </div>
   )
 }
+
