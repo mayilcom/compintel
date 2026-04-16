@@ -21,8 +21,13 @@ async function exchangeCode(
 
   switch (provider) {
     case 'meta':
-    case 'instagram':
       tokenUrl     = 'https://graph.facebook.com/v19.0/oauth/access_token'
+      clientId     = process.env.FACEBOOK_APP_ID
+      clientSecret = process.env.FACEBOOK_APP_SECRET
+      break
+    case 'instagram':
+      // Instagram Business Login uses its own token endpoint
+      tokenUrl     = 'https://api.instagram.com/oauth/access_token'
       clientId     = process.env.FACEBOOK_APP_ID
       clientSecret = process.env.FACEBOOK_APP_SECRET
       break
@@ -120,14 +125,13 @@ export async function GET(
   const acc = account as { account_id: string; oauth_tokens: Record<string, unknown> | null }
   const existing = acc.oauth_tokens ?? {}
 
-  const tokenKey = provider === 'instagram' ? 'instagram' : provider
   const expiresAt = tokens.expires_in
     ? new Date(Date.now() + tokens.expires_in * 1000).toISOString()
     : null
 
   const updatedTokens = {
     ...existing,
-    [tokenKey]: {
+    [provider]: {
       access_token:  tokens.access_token,
       refresh_token: tokens.refresh_token ?? null,
       expires_at:    expiresAt,

@@ -265,7 +265,7 @@ User clicks Disconnect → POST /api/oauth/disconnect { provider }
 | Provider param | oauthKey | Scopes | Env vars needed |
 |---|---|---|---|
 | `meta` | `meta` | `ads_read`, `pages_read_engagement` | `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET` |
-| `instagram` | `instagram` | `instagram_basic`, `instagram_manage_insights` | `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET` |
+| `instagram` | `instagram` | `instagram_business_basic`, `instagram_business_manage_messages`, `instagram_business_manage_comments`, `instagram_business_content_publish`, `instagram_business_manage_insights` | `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET` |
 | `google` | `google` | AdWords read-only, YouTube Analytics read-only | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
 | `linkedin` | `linkedin` | `r_dma_admin_pages_content` | `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET` |
 
@@ -274,6 +274,8 @@ User clicks Disconnect → POST /api/oauth/disconnect { provider }
 **Google** — developer token is provisioned. `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` in Vercel env vars is sufficient to activate the Connect button.
 
 **LinkedIn** — uses the **Pages Data Portability API** (`r_dma_admin_pages_content`) for company page posts, follower counts, and engagement metrics. This product cannot coexist with Marketing Developer Platform on the same app; a **dedicated LinkedIn app** is required. `LINKEDIN_CLIENT_ID`/`LINKEDIN_CLIENT_SECRET` point to this dedicated app — separate from the Sign In with LinkedIn app used by Clerk for authentication.
+
+**Instagram** — uses Instagram Business Login (`instagram.com/oauth/authorize`) with its own registered redirect URI (`/api/oauth/instagram/callback`), completely separate from Meta Ads. Token exchange uses `api.instagram.com/oauth/access_token`. Both Meta and Instagram share the same `FACEBOOK_APP_ID`/`FACEBOOK_APP_SECRET` but are distinct channels with separate Connect buttons, separate callbacks, and separate `oauth_tokens` keys (`meta` and `instagram`).
 
 **Meta** — `ads_read` scope requires App Review before non-test users can connect. Test users can be added under the app's Roles while in development mode.
 

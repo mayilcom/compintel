@@ -5,6 +5,18 @@ Format: `[version] YYYY-MM-DD — Description`
 
 ---
 
+## [0.1.23] 2026-04-17 — Instagram Business Login: separate callback, clean provider split
+
+### Changed
+
+- **`src/app/api/oauth/[provider]/init/route.ts`** — Instagram uses Instagram Business Login (`https://www.instagram.com/oauth/authorize`) with its own `/api/oauth/instagram/callback` redirect URI (registered separately in Meta app). Full Business Login scopes: `instagram_business_basic`, `instagram_business_manage_messages`, `instagram_business_manage_comments`, `instagram_business_content_publish`, `instagram_business_manage_insights`. Adds `force_reauth=true`. Removed `callbackProvider` — Meta and Instagram are now fully independent flows.
+
+- **`src/app/api/oauth/[provider]/callback/route.ts`** — Added `instagram` case to `exchangeCode` using `https://api.instagram.com/oauth/access_token` (distinct from Meta's `graph.facebook.com` endpoint). Removed `storageKey`/`tokenKey` complexity — state cookie is back to simple `state:userId`. Token stored under `oauth_tokens.instagram`, success banner says "Instagram connected".
+
+- **`docs/architecture/api-integrations.md`** — updated Instagram scopes and provider note to reflect fully separate callback and token endpoint.
+
+---
+
 ## [0.1.22] 2026-04-16 — LinkedIn OAuth: switch to Pages Data Portability API
 
 ### Changed

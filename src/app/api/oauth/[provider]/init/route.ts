@@ -7,12 +7,13 @@ import { randomBytes } from 'crypto'
 // The redirect_uri must be registered in the provider's app settings.
 
 interface ProviderConfig {
-  authUrl:  string
-  clientId: string | undefined
-  scope:    string
+  authUrl:      string
+  clientId:     string | undefined
+  scope:        string
+  extraParams?: Record<string, string>
 }
 
-function getProviderConfig(provider: string, redirectUri: string): ProviderConfig | null {
+function getProviderConfig(provider: string): ProviderConfig | null {
   switch (provider) {
     case 'meta':
       return {
@@ -21,11 +22,11 @@ function getProviderConfig(provider: string, redirectUri: string): ProviderConfi
         scope:    'ads_read,pages_read_engagement',
       }
     case 'instagram':
-      // Instagram uses Facebook Login
       return {
-        authUrl:  'https://www.facebook.com/v19.0/dialog/oauth',
-        clientId: process.env.FACEBOOK_APP_ID,
-        scope:    'instagram_basic,instagram_manage_insights',
+        authUrl:     'https://www.instagram.com/oauth/authorize',
+        clientId:    process.env.FACEBOOK_APP_ID,
+        scope:       'instagram_business_basic,instagram_business_manage_messages,instagram_business_manage_comments,instagram_business_content_publish,instagram_business_manage_insights',
+        extraParams: { force_reauth: 'true' },
       }
     case 'google':
       return {
@@ -53,9 +54,8 @@ export async function GET(
 
   const { provider } = await params
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
-  const redirectUri = `${appUrl}/api/oauth/${provider}/callback`
 
-  const config = getProviderConfig(provider, redirectUri)
+  const config = getProviderConfig(provider)
   if (!config) {
     return NextResponse.json({ error: `Unknown provider: ${provider}` }, { status: 400 })
   }
@@ -67,6 +67,8 @@ export async function GET(
     )
   }
 
+  const redirectUri = `${appUrl}/api/oauth/${provider}/callback`
+
   // Generate a random state token to prevent CSRF
   const state = randomBytes(16).toString('hex')
 
@@ -76,6 +78,9 @@ export async function GET(
   authUrl.searchParams.set('scope',         config.scope)
   authUrl.searchParams.set('response_type', 'code')
   authUrl.searchParams.set('state',         state)
+  for (const [k, v] of Object.entries(config.extraParams ?? {})) {
+    authUrl.searchParams.set(k, v)
+  }
 
   // Store state + userId in a short-lived HttpOnly cookie
   const response = NextResponse.redirect(authUrl.toString())
