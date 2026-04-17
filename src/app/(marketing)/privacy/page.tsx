@@ -23,7 +23,7 @@ export default function PrivacyPage() {
           </p>
           <p>
             For privacy-related questions, contact us at{' '}
-            <a href="mailto:hello@emayil.com">hello@emayil.com</a>.
+            <a href="mailto:legal@emayil.com">legal@emayil.com</a>.
           </p>
         </Section>
 
@@ -154,7 +154,7 @@ export default function PrivacyPage() {
           </p>
           <p>
             <strong>Data deletion requests</strong> can be submitted via Instagram's Privacy Center
-            or by emailing <a href="mailto:hello@emayil.com">hello@emayil.com</a>. We will delete
+            or by emailing <a href="mailto:legal@emayil.com">legal@emayil.com</a>. We will delete
             all Instagram-derived data within 30 days and provide a confirmation code.
           </p>
         </Section>
@@ -170,7 +170,7 @@ export default function PrivacyPage() {
           </ul>
           <p>
             To exercise any of these rights, email{' '}
-            <a href="mailto:hello@emayil.com">hello@emayil.com</a>. We will respond within 30 days.
+            <a href="mailto:legal@emayil.com">legal@emayil.com</a>. We will respond within 30 days.
           </p>
           <p>
             To delete your account, go to Settings → Profile → Delete account, or email us.
@@ -204,7 +204,7 @@ export default function PrivacyPage() {
         <Section title="11. Contact">
           <p>
             Mayil Technologies<br />
-            Email: <a href="mailto:hello@emayil.com">hello@emayil.com</a>
+            Email: <a href="mailto:legal@emayil.com">legal@emayil.com</a>
           </p>
         </Section>
 

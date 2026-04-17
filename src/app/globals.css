@@ -138,3 +138,96 @@ body {
 .signal-bar-opportunity { border-left: 3px solid var(--opportunity); }
 .signal-bar-trend       { border-left: 3px solid var(--trend); }
 .signal-bar-silence     { border-left: 3px solid var(--silence); }
+
+/* ─── MDX article body (prose-mayil) ───────────────────────────────────────── */
+.prose-mayil {
+  color: #0D0D0A;
+  font-size: 15px;
+  line-height: 1.75;
+}
+.prose-mayil h1,
+.prose-mayil h2,
+.prose-mayil h3,
+.prose-mayil h4 {
+  font-family: var(--font-display);
+  color: #0D0D0A;
+  line-height: 1.3;
+  margin-top: 2em;
+  margin-bottom: 0.5em;
+}
+.prose-mayil h1 { font-size: 1.75rem; }
+.prose-mayil h2 { font-size: 1.35rem; }
+.prose-mayil h3 { font-size: 1.1rem; font-family: var(--font-body); font-weight: 600; }
+.prose-mayil h4 { font-size: 1rem; font-family: var(--font-body); font-weight: 600; }
+.prose-mayil p  { margin-bottom: 1.25em; }
+.prose-mayil a  {
+  color: var(--gold-dark);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.prose-mayil a:hover { color: var(--gold); }
+.prose-mayil strong { font-weight: 600; color: #0D0D0A; }
+.prose-mayil em { font-style: italic; }
+.prose-mayil ul,
+.prose-mayil ol {
+  padding-left: 1.5rem;
+  margin-bottom: 1.25em;
+}
+.prose-mayil ul { list-style-type: disc; }
+.prose-mayil ol { list-style-type: decimal; }
+.prose-mayil li { margin-bottom: 0.4em; }
+.prose-mayil blockquote {
+  border-left: 3px solid var(--gold);
+  padding-left: 1rem;
+  margin: 1.5em 0;
+  color: #6B6860;
+  font-style: italic;
+}
+.prose-mayil code {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: #F0EDE4;
+  border: 1px solid #E0DDD4;
+  border-radius: 4px;
+  padding: 0.15em 0.4em;
+}
+.prose-mayil pre {
+  background: #F0EDE4;
+  border: 1px solid #E0DDD4;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  overflow-x: auto;
+  margin-bottom: 1.25em;
+}
+.prose-mayil pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.875em;
+}
+.prose-mayil hr {
+  border: none;
+  border-top: 1px solid #E0DDD4;
+  margin: 2em 0;
+}
+.prose-mayil table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9em;
+  margin-bottom: 1.25em;
+}
+.prose-mayil th {
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #6B6860;
+  border-bottom: 2px solid #E0DDD4;
+  padding: 0.5rem 0.75rem;
+}
+.prose-mayil td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #E0DDD4;
+  vertical-align: top;
+}

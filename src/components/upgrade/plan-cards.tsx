@@ -9,7 +9,8 @@ const PLANS = [
   {
     name:      'starter',
     label:     'Starter',
-    price:     { INR: '₹999', USD: '$15', EUR: '€13' },
+    price:     { monthly: { INR: '₹999', USD: '$15', EUR: '€13' }, annual: { INR: '₹833', USD: '$13', EUR: '€11' } },
+    annualTotal: { INR: '₹9,990', USD: '$150', EUR: '€130' },
     features:  ['1 brand', '5 competitors', '10 channels', '5 recipients', '1 team seat'],
     cta:       'Upgrade to Starter',
     highlight: false,
@@ -17,7 +18,8 @@ const PLANS = [
   {
     name:      'growth',
     label:     'Growth',
-    price:     { INR: '₹2,499', USD: '$49', EUR: '€42' },
+    price:     { monthly: { INR: '₹2,499', USD: '$49', EUR: '€42' }, annual: { INR: '₹2,083', USD: '$41', EUR: '€35' } },
+    annualTotal: { INR: '₹24,990', USD: '$490', EUR: '€420' },
     features:  ['3 brands', '10 competitors', '20 channels', '10 recipients', '3 team seats'],
     cta:       'Upgrade to Growth',
     highlight: true,
@@ -25,7 +27,8 @@ const PLANS = [
   {
     name:      'agency',
     label:     'Agency',
-    price:     { INR: '₹5,999', USD: '$149', EUR: '€125' },
+    price:     { monthly: { INR: '₹5,999', USD: '$149', EUR: '€125' }, annual: { INR: '₹4,999', USD: '$124', EUR: '€104' } },
+    annualTotal: { INR: '₹59,990', USD: '$1,490', EUR: '€1,250' },
     features:  ['10 brands', '20 competitors', '50 channels', '20 recipients', '10 team seats'],
     cta:       'Upgrade to Agency',
     highlight: false,
@@ -39,8 +42,9 @@ declare global {
 }
 
 export function UpgradePlanCards({ message }: { message: string | null }) {
+  const [annual, setAnnual]           = useState(false)
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null)
-  const [error, setError]            = useState<string | null>(null)
+  const [error, setError]             = useState<string | null>(null)
 
   // Pre-load Razorpay checkout script
   useEffect(() => {
@@ -57,7 +61,8 @@ export function UpgradePlanCards({ message }: { message: string | null }) {
     setError(null)
 
     try {
-      const res = await fetch(`/api/checkout?plan=${planName}`)
+      const url = `/api/checkout?plan=${planName}${annual ? '&annual=true' : ''}`
+      const res = await fetch(url)
 
       if (!res.ok) {
         const body = await res.json().catch(() => ({})) as { error?: string }
@@ -83,7 +88,7 @@ export function UpgradePlanCards({ message }: { message: string | null }) {
           key:             data.key_id,
           subscription_id: data.subscription_id,
           name:            'Mayil',
-          description:     `${planName.charAt(0).toUpperCase() + planName.slice(1)} plan`,
+          description:     `${planName.charAt(0).toUpperCase() + planName.slice(1)} plan${annual ? ' (annual)' : ''}`,
           image:           '/favicon.ico',
           theme:           { color: '#B8922A' },
           handler: () => {
@@ -115,6 +120,33 @@ export function UpgradePlanCards({ message }: { message: string | null }) {
           </p>
         </div>
 
+        {/* Monthly / Annual toggle */}
+        <div className="flex items-center gap-1 rounded-[8px] border border-border bg-surface p-1">
+          <button
+            type="button"
+            onClick={() => setAnnual(false)}
+            className={`rounded-[6px] px-4 py-1.5 text-[12px] font-medium transition-colors ${
+              !annual ? 'bg-ink text-paper' : 'text-muted hover:text-ink'
+            }`}
+          >
+            Monthly
+          </button>
+          <button
+            type="button"
+            onClick={() => setAnnual(true)}
+            className={`flex items-center gap-2 rounded-[6px] px-4 py-1.5 text-[12px] font-medium transition-colors ${
+              annual ? 'bg-ink text-paper' : 'text-muted hover:text-ink'
+            }`}
+          >
+            Annual
+            <span className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
+              annual ? 'bg-opportunity/20 text-opportunity' : 'bg-surface-2 text-muted'
+            }`}>
+              2 months free
+            </span>
+          </button>
+        </div>
+
         {error && (
           <p className="text-[13px] text-threat text-center">{error}</p>
         )}
@@ -131,11 +163,17 @@ export function UpgradePlanCards({ message }: { message: string | null }) {
                     <span className="label-section text-gold-dark">Most popular</span>
                   )}
                   <p className="font-display text-xl text-ink mt-1">{plan.label}</p>
-                  <p className="text-[13px] text-muted mt-0.5">
-                    from{' '}
-                    <span className="font-mono text-ink font-semibold">{plan.price.INR}</span>
-                    /month
-                  </p>
+                  <div className="mt-0.5">
+                    <span className="font-mono text-ink font-semibold">
+                      {annual ? plan.price.annual.INR : plan.price.monthly.INR}
+                    </span>
+                    <span className="text-[13px] text-muted">/month</span>
+                    {annual && (
+                      <p className="text-[11px] text-muted mt-0.5">
+                        {plan.annualTotal.INR} billed annually
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 <ul className="flex flex-col gap-1.5">

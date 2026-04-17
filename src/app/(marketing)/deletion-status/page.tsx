@@ -18,8 +18,8 @@ export default function DeletionStatusPage({
       <ConfirmationCode searchParams={searchParams} />
       <p className="text-[13px] text-muted mt-8">
         Questions? Email us at{' '}
-        <a href="mailto:hello@emayil.com" className="text-gold-dark hover:underline">
-          hello@emayil.com
+        <a href="mailto:legal@emayil.com" className="text-gold-dark hover:underline">
+          legal@emayil.com
         </a>
       </p>
     </div>

@@ -63,7 +63,7 @@ export default function TermsPage() {
           <p>
             We offer a full refund within <strong>7 days</strong> of the first charge of a new
             subscription if no brief has been delivered. Contact{' '}
-            <a href="mailto:hello@emayil.com">hello@emayil.com</a> to request a refund.
+            <a href="mailto:legal@emayil.com">legal@emayil.com</a> to request a refund.
           </p>
           <p>
             We reserve the right to suspend or terminate accounts for non-payment, abuse, or
@@ -165,11 +165,11 @@ export default function TermsPage() {
         <Section title="12. Contact">
           <p>
             For questions about these Terms, contact us at{' '}
-            <a href="mailto:hello@emayil.com">hello@emayil.com</a>.
+            <a href="mailto:legal@emayil.com">legal@emayil.com</a>.
           </p>
           <p>
             Mayil Technologies<br />
-            Email: <a href="mailto:hello@emayil.com">hello@emayil.com</a>
+            Email: <a href="mailto:legal@emayil.com">legal@emayil.com</a>
           </p>
         </Section>
 

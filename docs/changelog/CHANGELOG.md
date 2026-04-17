@@ -5,6 +5,109 @@ Format: `[version] YYYY-MM-DD — Description`
 
 ---
 
+## [0.1.33] 2026-04-17 — Enterprise website: Solutions, Blog, Use Cases, Case Studies, MarketingNav
+
+### Added
+
+- **`src/lib/mdx.ts`** — MDX content utility. `getAllContent(type, opts)` reads all MDX files from `content/{type}/`, parses frontmatter with gray-matter, filters by `status: published` by default, and sorts by date descending. `getContentBySlug(type, slug)` returns a single file's frontmatter + raw content string for `MDXRemote` rendering. `ContentType = 'blog' | 'use-cases' | 'case-studies'`.
+
+- **`content/blog/`** — 3 published MDX articles: `fmcg-competitive-signals-q4.mdx` (featured, FMCG category), `why-weekly-beats-realtime.mdx` (Strategy), `meta-ads-library-guide.mdx` (Channels).
+
+- **`content/use-cases/`** — 3 published MDX use cases: `catch-festive-campaign-early.mdx` (FMCG), `spot-amazon-rating-drop.mdx` (FMCG/Ecommerce), `track-sku-expansion.mdx` (FMCG/Ecommerce).
+
+- **`content/case-studies/`** — 2 MDX case studies with `status: hidden`: `fmcg-festive-campaign.mdx`, `agency-multi-brand.mdx`. Hidden until real customer data available.
+
+- **`src/app/(marketing)/blog/page.tsx`** — Blog listing page. Featured post (frontmatter `featured: true`) shown in a full-width gold-bg card at top. Remaining posts in 2-column grid. Uses `getAllContent('blog')`.
+
+- **`src/app/(marketing)/blog/[slug]/page.tsx`** — Blog detail with `MDXRemote` + `remarkGfm`. `generateStaticParams` + `generateMetadata`. Returns `notFound()` if `status !== 'published'`. Blog CTA footer links to sign-up and contact.
+
+- **`src/app/(marketing)/use-cases/page.tsx`** — Use cases listing page. Items grouped by `CATEGORY_ORDER = ['FMCG', 'Ecommerce', 'Tech', 'Agency']`. CTA band at bottom linking to contact.
+
+- **`src/app/(marketing)/use-cases/[slug]/page.tsx`** — Use case detail with `MDXRemote`. Same static generation pattern.
+
+- **`src/app/(marketing)/case-studies/page.tsx`** — Case studies listing. Shows empty-state "Case studies coming soon" card since all items are `status: hidden`. Will surface cards automatically when status is changed to `published`.
+
+- **`src/app/(marketing)/case-studies/[slug]/page.tsx`** — Case study detail. Renders result outcome in a green `opportunity` banner from `frontmatter.result`. Returns `notFound()` if `status !== 'published'` (i.e., hidden items are unreachable).
+
+- **`src/app/(marketing)/solutions/page.tsx`** — Solutions hub (replaces any /enterprise concept). Hero + 4 differentiator cards (portfolio-scale, dedicated manager, custom brief architecture, enterprise infrastructure) + 4 industry tiles + 3-step onboarding timeline + CTA.
+
+- **`src/app/(marketing)/solutions/fmcg/page.tsx`** — FMCG & CPG solution page with live signal mockups (Britannia, Parle-G, Oreo). Three use-case cards linking to use-case detail pages.
+
+- **`src/app/(marketing)/solutions/ecommerce/page.tsx`** — Ecommerce & D2C solution page with signal mockups (Mamaearth, MCaffeine, Plum).
+
+- **`src/app/(marketing)/solutions/tech/page.tsx`** — Tech & SaaS solution page with signal mockups (Zoho CRM, Freshdesk, Chargebee).
+
+- **`src/app/(marketing)/solutions/agency/page.tsx`** — Agencies solution page. Adds a "Built for agencies" feature grid (separate workspaces, team access, custom cadence, dedicated manager) in addition to the standard signals + use-cases pattern.
+
+- **`src/components/marketing-nav.tsx`** — `MarketingNav` client component. Sticky header with Radix UI `DropdownMenu` for Solutions (4 industry sub-pages) and Resources (Blog, Use Cases, Case Studies). Right side: Sign in link, Request demo outline button, Start free trial primary button. Active state detection via `usePathname`.
+
+- **`prose-mayil` CSS class in `src/app/globals.css`** — Full article body typography: headings (DM Serif Display h1/h2, Instrument Sans h3/h4), paragraphs, links (gold-dark underline), lists, blockquotes (gold left border), inline code, fenced code blocks, horizontal rules, and tables. Used by all three MDX detail page renderers.
+
+### Changed
+
+- **`src/app/(marketing)/layout.tsx`** — Replaced the static inline header (Privacy/Terms/Contact links only) with `<MarketingNav />`. Footer unchanged.
+
+### Notes
+
+- `next-mdx-remote` (RSC variant) and `gray-matter` packages added to `package.json` during this session.
+- Case studies remain hidden (`status: hidden`) until real customer stories are ready — the listing page shows an empty state with a demo CTA automatically.
+
+---
+
+## [0.1.32] 2026-04-17 — GA4 + GSC as brand insight channels
+
+### Added
+
+- **`src/components/settings/google-property-form.tsx`** — client component rendered inside Settings → Channels when Google is connected. Two inputs: GA4 Property ID (from GA4 → Admin → Property Settings) and GSC site URL (exact URL from Search Console). Saves via PATCH `/api/settings/channels/google-properties`. Inline save with success feedback.
+
+- **`src/app/api/settings/channels/google-properties/route.ts`** — `PATCH /api/settings/channels/google-properties`. Validates Google is connected, then merges `ga4_property_id` and `gsc_site_url` into `accounts.oauth_tokens.google`. Returns 400 if Google not yet connected.
+
+- **Brand channels section in `src/app/app/settings/channels/page.tsx`** — new "Your brand channels" section below competitor channels. Shows GA4 and GSC rows with active/disconnected status. When Google is connected, renders the `GooglePropertyForm` inline. When not connected, shows a Connect Google button.
+
+- **GA4 + GSC collection in `apps/workers/src/workers/collector.ts`** — after Apify collection, iterates accounts with `oauth_tokens.google` + a property ID/site URL set. Finds the `is_client: true` brand, refreshes access token if expired (persists new token back to DB), then calls Google Analytics Data API v1beta (`runReport`) and Search Console API v3 (`searchAnalytics/query`). Stores snapshots with `channel: 'google_analytics'` / `channel: 'google_search_console'` and `source: 'google_api'`.
+
+  GA4 metrics stored: `sessions_7d`, `users_7d`, `page_views_7d`, `channel_breakdown`
+  GSC metrics stored: `clicks_7d`, `impressions_7d`, `avg_position`, `top_queries` (top 10)
+
+### Changed
+
+- **`src/app/api/oauth/[provider]/init/route.ts`** — Google scopes expanded: added `analytics.readonly` and `webmasters.readonly` alongside existing `adwords` and `yt-analytics.readonly`. Added `access_type: offline` and `prompt: consent` extra params to ensure refresh tokens are issued on every authorization (needed for weekly collector access).
+
+- **`apps/workers/src/lib/types.ts`** — `Channel` union extended with `'google_analytics' | 'google_search_console'`.
+
+---
+
+## [0.1.31] 2026-04-17 — Google Tag Manager
+
+### Added
+
+- **`src/app/layout.tsx`** — GTM snippet injected when `NEXT_PUBLIC_GTM_ID` is set. Head script uses `strategy="beforeInteractive"` to load the GTM JS as early as possible. `<noscript>` iframe fallback added at the top of `<body>` for browsers with JS disabled. No-ops in dev if env var is absent.
+
+- **`.env.local.example`** — added `NEXT_PUBLIC_GTM_ID` (Container ID from GTM → Admin → Container Settings).
+
+### Removed
+
+- GA4 direct snippet and `NEXT_PUBLIC_GA_MEASUREMENT_ID` — replaced by GTM (GA4 should be configured as a tag inside the GTM container instead).
+- `NEXT_PUBLIC_GSC_VERIFICATION` metadata field — Search Console verification can be done via GTM or DNS TXT record instead.
+
+---
+
+## [0.1.30] 2026-04-17 — V2: competitor search autocomplete + annual billing toggle
+
+### Added
+
+- **`src/app/onboarding/competitors/page.tsx`** — brand search autocomplete on the competitors onboarding step. As the user types (≥2 chars), a debounced request hits `GET /api/onboarding/competitors/search?q=...` (already existed). Matching brands appear in a dropdown showing name, category, and IG/AMZ badges. Selecting a brand auto-populates brand name, pre-selects platforms that have data, and pre-fills handles — then immediately adds it to the confirmed list with `source: 'lookup'` badge. Manual entry fallback ("Add X manually instead") stays in the dropdown footer. Closing on outside-click handled with `mousedown` listener.
+
+- **`src/components/upgrade/plan-cards.tsx`** — monthly/annual billing toggle above plan cards. Pill-style toggle switches between monthly and annual pricing. Annual shows per-month price (10 months ÷ 12, rounded) with "billed annually" total beneath. "2 months free" badge turns green on the active tab. Checkout URL gains `?annual=true` when annual is selected; backend already handled this via `STRIPE_ANNUAL_COUPON_ID` / Razorpay `total_count: 10`.
+
+### Changed
+
+- **`src/app/(marketing)/privacy/page.tsx`**, **`src/app/(marketing)/terms/page.tsx`**, **`src/app/(marketing)/deletion-status/page.tsx`** — replaced `hello@emayil.com` with `legal@emayil.com` across all nine occurrences. Legal and deletion-related contact should route to a dedicated address, not the general inbox.
+
+---
+
+## [0.1.28] 2026-04-17 — Contact / demo request page with HubSpot CRM integration
+
 ## [0.1.28] 2026-04-17 — Contact / demo request page with HubSpot CRM integration
 
 ### Added

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { createServiceClient } from '@/lib/supabase/server'
 import { PLAN_LIMITS, type Plan } from '@/lib/utils'
 import { DisconnectButton } from '@/components/settings/disconnect-button'
+import { GooglePropertyForm } from '@/components/settings/google-property-form'
 import Link from 'next/link'
 
 export const metadata = { title: 'Channels — Settings' }
@@ -209,6 +210,95 @@ export default async function ChannelsSettingsPage({
               </div>
             )
           })}
+        </CardContent>
+      </Card>
+
+      {/* ── Brand channels ── */}
+      <div>
+        <h2 className="font-display text-base text-ink mb-1">Your brand channels</h2>
+        <p className="text-[13px] text-muted mb-4">
+          Connect your own analytics to add first-party performance data to your brief.
+        </p>
+      </div>
+
+      <Card>
+        <CardContent className="p-0">
+          <div className="px-5 py-3 border-b border-border">
+            <p className="label-section">Brand insights</p>
+          </div>
+
+          {/* Google Analytics 4 */}
+          {(() => {
+            const googleToken = oauthTokens.google as Record<string, unknown> | undefined
+            const ga4Id       = googleToken?.ga4_property_id as string | null ?? null
+            const gscUrl      = googleToken?.gsc_site_url    as string | null ?? null
+            const googleReady = CONFIGURED_PROVIDERS.has('google')
+            const googleConnected = !!googleToken
+
+            return (
+              <>
+                {/* GA4 row */}
+                <div className="flex items-start justify-between px-5 py-4 border-b border-border">
+                  <div className="flex-1 min-w-0 pr-4">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <p className="text-[13px] font-medium text-ink">Google Analytics 4</p>
+                    </div>
+                    <p className="text-[11px] text-muted leading-relaxed">
+                      Sessions, top pages, traffic sources, and week-over-week growth for your brand.
+                    </p>
+                    {ga4Id && (
+                      <p className="text-[11px] text-opportunity mt-1">Property {ga4Id} configured</p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
+                    <div className={`h-1.5 w-1.5 rounded-full ${ga4Id ? 'bg-opportunity' : 'bg-border'}`} />
+                    <span className="text-[11px] text-muted">{ga4Id ? 'Active' : 'Disconnected'}</span>
+                  </div>
+                </div>
+
+                {/* GSC row */}
+                <div className="flex items-start justify-between px-5 py-4 border-b border-border">
+                  <div className="flex-1 min-w-0 pr-4">
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <p className="text-[13px] font-medium text-ink">Google Search Console</p>
+                    </div>
+                    <p className="text-[11px] text-muted leading-relaxed">
+                      Top search queries, impressions, click-through rates, and position trends.
+                    </p>
+                    {gscUrl && (
+                      <p className="text-[11px] text-opportunity mt-1">{gscUrl} configured</p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1.5 shrink-0 mt-0.5">
+                    <div className={`h-1.5 w-1.5 rounded-full ${gscUrl ? 'bg-opportunity' : 'bg-border'}`} />
+                    <span className="text-[11px] text-muted">{gscUrl ? 'Active' : 'Disconnected'}</span>
+                  </div>
+                </div>
+
+                {/* Connect Google / property form */}
+                <div className="px-5 py-4">
+                  {!googleConnected ? (
+                    googleReady ? (
+                      <Link href="/api/oauth/google/init">
+                        <Button variant="outline" size="sm" className="h-7 text-[11px]">
+                          Connect Google →
+                        </Button>
+                      </Link>
+                    ) : (
+                      <Button variant="outline" size="sm" className="h-7 text-[11px]" disabled>
+                        Connect Google
+                      </Button>
+                    )
+                  ) : (
+                    <GooglePropertyForm
+                      ga4PropertyId={ga4Id}
+                      gscSiteUrl={gscUrl}
+                    />
+                  )}
+                </div>
+              </>
+            )
+          })()}
         </CardContent>
       </Card>
 

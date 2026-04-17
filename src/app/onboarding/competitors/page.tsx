@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { OnboardingProgress } from '@/components/onboarding/progress-bar'
 import { Card, CardContent } from '@/components/ui/card'
@@ -8,13 +8,23 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { PLATFORMS, buildChannels } from '@/lib/platforms'
 
+interface BrandResult {
+  id:           string
+  brand_name:   string
+  brand_aliases: string[] | null
+  domain:       string | null
+  instagram:    string | null
+  amazon_brand: string | null
+  category:     string | null
+}
+
 interface ConfirmedCompetitor {
   brand_name:   string
   domain:       string | null
   instagram:    string | null
   amazon_brand: string | null
   category:     string | null
-  source:       'manual'
+  source:       'manual' | 'lookup'
   channels:     Record<string, { handle?: string; brand_name?: string }>
 }
 
@@ -27,6 +37,102 @@ export default function OnboardingCompetitorsPage() {
   const [handles, setHandles]             = useState<Record<string, string>>({})
   const [isSaving, setIsSaving]           = useState(false)
   const [error, setError]                 = useState<string | null>(null)
+
+  // Search state
+  const [searchResults, setSearchResults] = useState<BrandResult[]>([])
+  const [showDropdown, setShowDropdown]   = useState(false)
+  const [isSearching, setIsSearching]     = useState(false)
+  const searchTimer                       = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const dropdownRef                       = useRef<HTMLDivElement>(null)
+
+  // Debounced search
+  useEffect(() => {
+    if (searchTimer.current) clearTimeout(searchTimer.current)
+
+    const q = manualName.trim()
+    if (q.length < 2) {
+      setSearchResults([])
+      setShowDropdown(false)
+      return
+    }
+
+    searchTimer.current = setTimeout(async () => {
+      setIsSearching(true)
+      try {
+        const res = await fetch(`/api/onboarding/competitors/search?q=${encodeURIComponent(q)}`)
+        if (res.ok) {
+          const data = await res.json() as { brands: BrandResult[] }
+          setSearchResults(data.brands ?? [])
+          setShowDropdown((data.brands ?? []).length > 0)
+        }
+      } catch {
+        // silent — user can still type manually
+      } finally {
+        setIsSearching(false)
+      }
+    }, 300)
+
+    return () => { if (searchTimer.current) clearTimeout(searchTimer.current) }
+  }, [manualName])
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    function onClickOutside(e: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setShowDropdown(false)
+      }
+    }
+    document.addEventListener('mousedown', onClickOutside)
+    return () => document.removeEventListener('mousedown', onClickOutside)
+  }, [])
+
+  function selectFromLookup(brand: BrandResult) {
+    setShowDropdown(false)
+
+    // Determine which platforms have data
+    const activePlatforms: string[] = []
+    const newHandles: Record<string, string> = {}
+
+    if (brand.instagram) {
+      activePlatforms.push('instagram')
+      newHandles['instagram'] = brand.instagram
+    }
+    if (brand.amazon_brand) {
+      activePlatforms.push('amazon')
+      newHandles['amazon'] = brand.amazon_brand
+    }
+    if (brand.domain) {
+      activePlatforms.push('google_search')
+      newHandles['google_search'] = brand.domain
+    }
+
+    // Keep at least default platforms if nothing found
+    if (activePlatforms.length === 0) {
+      activePlatforms.push('instagram', 'youtube')
+    }
+
+    setManualName(brand.brand_name)
+    setSelectedPlatforms(activePlatforms)
+    setHandles(newHandles)
+
+    // Auto-add immediately if all data present
+    const channels = buildChannels(activePlatforms, newHandles)
+    if (confirmed.some(c => c.brand_name.toLowerCase() === brand.brand_name.toLowerCase())) return
+
+    setConfirmed(prev => [...prev, {
+      brand_name:   brand.brand_name,
+      domain:       brand.domain,
+      instagram:    brand.instagram,
+      amazon_brand: brand.amazon_brand,
+      category:     brand.category,
+      source:       'lookup',
+      channels,
+    }])
+
+    setManualName('')
+    setHandles({})
+    setSelectedPlatforms(['instagram', 'youtube'])
+  }
 
   function togglePlatform(id: string) {
     setSelectedPlatforms(prev =>
@@ -51,7 +157,6 @@ export default function OnboardingCompetitorsPage() {
       channels,
     }])
 
-    // Reset form but keep platform selection
     setManualName('')
     setHandles({})
   }
@@ -114,26 +219,73 @@ export default function OnboardingCompetitorsPage() {
       <div className="mb-8">
         <h1 className="font-display text-2xl text-ink">Add your competitors</h1>
         <p className="mt-2 text-[13px] text-muted">
-          Add brands you want to track. Select the platforms they&apos;re active on and paste their handles or URLs.
+          Search for brands you want to track, or add them manually with platform handles.
         </p>
       </div>
 
-      {/* Add competitor form — always open */}
+      {/* Add competitor form */}
       <Card className="mb-6">
         <CardContent className="p-5 flex flex-col gap-4">
           <p className="label-section">Add a competitor</p>
 
-          {/* Brand name */}
-          <div className="flex flex-col gap-1.5">
+          {/* Brand name with search dropdown */}
+          <div className="flex flex-col gap-1.5 relative" ref={dropdownRef}>
             <label className="text-[11px] text-muted font-medium">Brand name *</label>
-            <input
-              type="text"
-              placeholder="e.g. Britannia, Parle, Nestlé…"
-              value={manualName}
-              onChange={(e) => setManualName(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter' && manualName.trim()) addCompetitor() }}
-              className="h-9 rounded-[8px] border border-border bg-surface px-3 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-gold/30"
-            />
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search brand name…"
+                value={manualName}
+                onChange={(e) => setManualName(e.target.value)}
+                onFocus={() => { if (searchResults.length > 0) setShowDropdown(true) }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') setShowDropdown(false)
+                  if (e.key === 'Enter' && !showDropdown && manualName.trim()) addCompetitor()
+                }}
+                className="h-9 w-full rounded-[8px] border border-border bg-surface px-3 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-gold/30"
+              />
+              {isSearching && (
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted">
+                  searching…
+                </span>
+              )}
+            </div>
+
+            {/* Search dropdown */}
+            {showDropdown && searchResults.length > 0 && (
+              <div className="absolute top-full left-0 right-0 z-20 mt-1 rounded-[8px] border border-border bg-surface shadow-card overflow-hidden">
+                {searchResults.map((brand) => (
+                  <button
+                    key={brand.id}
+                    type="button"
+                    onMouseDown={(e) => { e.preventDefault(); selectFromLookup(brand) }}
+                    className="w-full flex items-center justify-between px-3 py-2.5 text-left hover:bg-surface-2 transition-colors"
+                  >
+                    <span className="text-sm text-ink font-medium">{brand.brand_name}</span>
+                    <div className="flex items-center gap-2">
+                      {brand.category && (
+                        <span className="text-[10px] text-muted">{brand.category}</span>
+                      )}
+                      {brand.instagram && (
+                        <span className="text-[10px] bg-surface-2 border border-border rounded px-1.5 py-0.5 text-muted">IG</span>
+                      )}
+                      {brand.amazon_brand && (
+                        <span className="text-[10px] bg-surface-2 border border-border rounded px-1.5 py-0.5 text-muted">AMZ</span>
+                      )}
+                    </div>
+                  </button>
+                ))}
+                <div className="px-3 py-2 border-t border-border bg-surface-2">
+                  <button
+                    type="button"
+                    onMouseDown={(e) => { e.preventDefault(); setShowDropdown(false) }}
+                    className="text-[11px] text-muted hover:text-ink"
+                  >
+                    Add &ldquo;{manualName}&rdquo; manually instead
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Platform picker */}
@@ -202,7 +354,12 @@ export default function OnboardingCompetitorsPage() {
                   <div className="flex flex-col gap-1 flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-semibold text-ink">{comp.brand_name}</span>
-                      <Badge variant="outline" className="text-[10px]">Manual</Badge>
+                      <Badge variant="outline" className="text-[10px]">
+                        {comp.source === 'lookup' ? 'From library' : 'Manual'}
+                      </Badge>
+                      {comp.category && (
+                        <span className="text-[10px] text-muted">{comp.category}</span>
+                      )}
                     </div>
                     {Object.keys(comp.channels).length > 0 && (
                       <p className="text-[11px] text-muted truncate">

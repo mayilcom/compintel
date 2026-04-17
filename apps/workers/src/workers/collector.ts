@@ -224,10 +224,267 @@ async function run() {
     }
   }
 
+  // ── Brand channels: GA4 + GSC (account-level, client brand only) ─────────
+  // Collects first-party data for the account's own brand using Google OAuth tokens.
+  // Runs after Apify collection so failures here don't block competitor snapshots.
+
+  for (const account of accounts as Account[]) {
+    const googleToken = (account.oauth_tokens as Record<string, unknown>)?.google as Record<string, unknown> | undefined
+    if (!googleToken?.access_token) continue
+
+    const ga4PropertyId = googleToken.ga4_property_id as string | undefined
+    const gscSiteUrl    = googleToken.gsc_site_url    as string | undefined
+    if (!ga4PropertyId && !gscSiteUrl) continue
+
+    // Find the client brand for this account
+    const { data: clientBrands } = await db
+      .from('brands')
+      .select('brand_id, brand_name')
+      .eq('account_id', account.account_id)
+      .eq('is_client', true)
+      .eq('is_paused', false)
+      .limit(1)
+
+    const clientBrand = clientBrands?.[0]
+    if (!clientBrand) continue
+
+    // Ensure we have a valid (non-expired) access token
+    let accessToken = googleToken.access_token as string
+    const expiresAt = googleToken.expires_at as string | undefined
+    if (expiresAt && new Date(expiresAt) <= new Date(Date.now() + 60_000)) {
+      const refreshed = await refreshGoogleToken(
+        googleToken.refresh_token as string | undefined,
+        account.account_id,
+      )
+      if (!refreshed) {
+        log.warn('google token refresh failed — skipping brand channels', { account_id: account.account_id })
+        continue
+      }
+      accessToken = refreshed
+    }
+
+    // ── GA4 ──
+    if (ga4PropertyId) {
+      try {
+        log.info('collecting ga4', { brand: clientBrand.brand_name, property: ga4PropertyId })
+        const metrics = await collectGA4(accessToken, ga4PropertyId)
+        await db.from('snapshots').upsert({
+          brand_id: clientBrand.brand_id,
+          week_start: weekStart,
+          channel: 'google_analytics',
+          metrics,
+          raw_content: {},
+          source: 'google_api',
+          collection_status: 'success',
+          collected_at: new Date().toISOString(),
+        }, { onConflict: 'brand_id,week_start,channel' })
+        snapshots++
+      } catch (err) {
+        failures++
+        log.error('ga4 collection failed', { account_id: account.account_id, error: String(err) })
+        await db.from('snapshots').upsert({
+          brand_id: clientBrand.brand_id,
+          week_start: weekStart,
+          channel: 'google_analytics',
+          metrics: {}, raw_content: {},
+          source: 'google_api', collection_status: 'failed',
+          collected_at: new Date().toISOString(),
+        }, { onConflict: 'brand_id,week_start,channel' })
+      }
+    }
+
+    // ── GSC ──
+    if (gscSiteUrl) {
+      try {
+        log.info('collecting gsc', { brand: clientBrand.brand_name, site: gscSiteUrl })
+        const metrics = await collectGSC(accessToken, gscSiteUrl)
+        await db.from('snapshots').upsert({
+          brand_id: clientBrand.brand_id,
+          week_start: weekStart,
+          channel: 'google_search_console',
+          metrics,
+          raw_content: { top_queries: metrics.top_queries },
+          source: 'google_api',
+          collection_status: 'success',
+          collected_at: new Date().toISOString(),
+        }, { onConflict: 'brand_id,week_start,channel' })
+        snapshots++
+      } catch (err) {
+        failures++
+        log.error('gsc collection failed', { account_id: account.account_id, error: String(err) })
+        await db.from('snapshots').upsert({
+          brand_id: clientBrand.brand_id,
+          week_start: weekStart,
+          channel: 'google_search_console',
+          metrics: {}, raw_content: {},
+          source: 'google_api', collection_status: 'failed',
+          collected_at: new Date().toISOString(),
+        }, { onConflict: 'brand_id,week_start,channel' })
+      }
+    }
+  }
+
   log.info('done', { snapshots, failures })
   if (failures > 0 && failures / (snapshots + failures) > 0.1) {
     log.warn('failure rate above 10% — review Apify actor health')
   }
+}
+
+// ── Google API helpers ────────────────────────────────────────
+
+async function refreshGoogleToken(
+  refreshToken: string | undefined,
+  accountId: string,
+): Promise<string | null> {
+  if (!refreshToken) return null
+  try {
+    const res = await fetch('https://oauth2.googleapis.com/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        client_id:     process.env.GOOGLE_CLIENT_ID     ?? '',
+        client_secret: process.env.GOOGLE_CLIENT_SECRET ?? '',
+        refresh_token: refreshToken,
+        grant_type:    'refresh_token',
+      }),
+    })
+    if (!res.ok) return null
+    const data = await res.json() as { access_token: string; expires_in: number }
+
+    // Persist refreshed token back into oauth_tokens.google
+    const expiresAt = new Date(Date.now() + data.expires_in * 1000).toISOString()
+    const { data: acct } = await db
+      .from('accounts')
+      .select('oauth_tokens')
+      .eq('account_id', accountId)
+      .single()
+    if (acct) {
+      const tokens = (acct.oauth_tokens ?? {}) as Record<string, unknown>
+      const google = (tokens.google ?? {}) as Record<string, unknown>
+      await db.from('accounts').update({
+        oauth_tokens: { ...tokens, google: { ...google, access_token: data.access_token, expires_at: expiresAt } },
+      }).eq('account_id', accountId)
+    }
+
+    return data.access_token
+  } catch {
+    return null
+  }
+}
+
+async function collectGA4(
+  accessToken: string,
+  propertyId:  string,
+): Promise<Record<string, unknown>> {
+  const res = await fetch(
+    `https://analyticsdata.googleapis.com/v1beta/properties/${propertyId}/runReport`,
+    {
+      method:  'POST',
+      headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        metrics:    [
+          { name: 'sessions' },
+          { name: 'totalUsers' },
+          { name: 'screenPageViews' },
+          { name: 'bounceRate' },
+          { name: 'averageSessionDuration' },
+        ],
+        dimensions: [{ name: 'sessionDefaultChannelGrouping' }],
+        dateRanges: [{ startDate: '7daysAgo', endDate: 'yesterday' }],
+      }),
+    }
+  )
+  if (!res.ok) throw new Error(`GA4 API error ${res.status}: ${await res.text()}`)
+  const data = await res.json() as {
+    rows?: Array<{
+      dimensionValues: Array<{ value: string }>
+      metricValues:    Array<{ value: string }>
+    }>
+  }
+
+  let totalSessions = 0, totalUsers = 0, totalPageViews = 0
+  const channelBreakdown: Record<string, number> = {}
+
+  for (const row of data.rows ?? []) {
+    const channel  = row.dimensionValues[0]?.value ?? 'Unknown'
+    const sessions = parseInt(row.metricValues[0]?.value ?? '0', 10)
+    const users    = parseInt(row.metricValues[1]?.value ?? '0', 10)
+    const views    = parseInt(row.metricValues[2]?.value ?? '0', 10)
+    totalSessions += sessions
+    totalUsers    += users
+    totalPageViews += views
+    channelBreakdown[channel] = sessions
+  }
+
+  return {
+    sessions_7d:        totalSessions,
+    users_7d:           totalUsers,
+    page_views_7d:      totalPageViews,
+    channel_breakdown:  channelBreakdown,
+  }
+}
+
+async function collectGSC(
+  accessToken: string,
+  siteUrl:     string,
+): Promise<Record<string, unknown>> {
+  const encodedSite = encodeURIComponent(siteUrl)
+  const res = await fetch(
+    `https://www.googleapis.com/webmasters/v3/sites/${encodedSite}/searchAnalytics/query`,
+    {
+      method:  'POST',
+      headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        startDate:  sevenDaysAgo(),
+        endDate:    yesterday(),
+        dimensions: ['query'],
+        rowLimit:   25,
+      }),
+    }
+  )
+  if (!res.ok) throw new Error(`GSC API error ${res.status}: ${await res.text()}`)
+  const data = await res.json() as {
+    rows?: Array<{
+      keys:         string[]
+      clicks:       number
+      impressions:  number
+      ctr:          number
+      position:     number
+    }>
+  }
+
+  const rows = data.rows ?? []
+  const totalClicks      = rows.reduce((s, r) => s + r.clicks,      0)
+  const totalImpressions = rows.reduce((s, r) => s + r.impressions, 0)
+  const avgPosition      = rows.length
+    ? rows.reduce((s, r) => s + r.position, 0) / rows.length
+    : null
+  const topQueries = rows.slice(0, 10).map(r => ({
+    query:       r.keys[0],
+    clicks:      r.clicks,
+    impressions: r.impressions,
+    ctr:         Math.round(r.ctr * 1000) / 10,   // as %
+    position:    Math.round(r.position * 10) / 10,
+  }))
+
+  return {
+    clicks_7d:      totalClicks,
+    impressions_7d: totalImpressions,
+    avg_position:   avgPosition !== null ? Math.round(avgPosition * 10) / 10 : null,
+    top_queries:    topQueries,
+  }
+}
+
+function yesterday(): string {
+  const d = new Date()
+  d.setUTCDate(d.getUTCDate() - 1)
+  return d.toISOString().slice(0, 10)
+}
+
+function sevenDaysAgo(): string {
+  const d = new Date()
+  d.setUTCDate(d.getUTCDate() - 7)
+  return d.toISOString().slice(0, 10)
 }
 
 run().catch(err => {

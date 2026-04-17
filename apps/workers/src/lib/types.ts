@@ -40,6 +40,7 @@ export type Channel =
   | 'instagram' | 'youtube' | 'linkedin' | 'google_trends' | 'amazon'
   | 'meta_ads' | 'news' | 'reddit' | 'pinterest' | 'website'
   | 'google_search' | 'flipkart' | 'glassdoor' | 'g2' | 'twitter'
+  | 'google_analytics' | 'google_search_console'
 
 export type CollectionStatus = 'pending' | 'success' | 'partial' | 'failed'
 
