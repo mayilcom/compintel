@@ -5,6 +5,22 @@ Format: `[version] YYYY-MM-DD — Description`
 
 ---
 
+## [0.1.28] 2026-04-17 — Contact / demo request page with HubSpot CRM integration
+
+### Added
+
+- **`src/app/(marketing)/contact/page.tsx`** — `/contact` sales and demo request page. Two-column layout: left side shows value prop (what to expect in a demo, a customer quote); right side is the form. Fields: full name, work email, company (all required), role (select), message (optional). Success state replaces the form. Styled with design tokens.
+
+- **`src/app/api/contact/route.ts`** — `POST /api/contact`. Validates required fields, splits name into `firstname`/`lastname`, submits to HubSpot Forms API v3 (`/submissions/v3/integration/submit/{portalId}/{formGuid}`). Returns 503 if env vars not set, 400 on validation failure, 502 if HubSpot returns an error.
+
+### Changed
+
+- **`.env.local.example`** — added `HUBSPOT_PORTAL_ID` and `HUBSPOT_FORM_GUID` with setup instructions.
+
+- **`docs/architecture/api-integrations.md`** — added HubSpot section documenting the form submission flow, required env vars, and HubSpot form field names.
+
+---
+
 ## [0.1.27] 2026-04-17 — Google scope fix; replace footer email with Contact link
 
 ### Fixed

@@ -291,6 +291,30 @@ User clicks Disconnect → POST /api/oauth/disconnect { provider }
 
 ---
 
+## HubSpot
+
+**Purpose:** CRM destination for sales/demo contact form submissions  
+**Route:** `POST /api/contact`  
+**Docs:** HubSpot Forms API v3
+
+### Flow
+
+```
+User submits /contact form → POST /api/contact (server-side)
+  → validates fields, splits name into firstname/lastname
+  → POST https://api.hsforms.com/submissions/v3/integration/submit/{portalId}/{formGuid}
+  → contact created/updated in HubSpot CRM
+```
+
+### Required env vars
+- `HUBSPOT_PORTAL_ID` — visible in HubSpot URL (`app.hubspot.com/contacts/{id}/`)
+- `HUBSPOT_FORM_GUID` — from the embed code of the HubSpot form
+
+### HubSpot form fields
+Create a form in HubSpot with these field names: `firstname`, `lastname`, `email`, `company`, `jobtitle`, `message`.
+
+---
+
 ## Google Sheets (future)
 
 A future integration will allow accounts to export their signal history to a Google Sheet for their own analysis. Not in V1.
