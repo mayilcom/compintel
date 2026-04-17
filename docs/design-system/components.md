@@ -1,6 +1,6 @@
 # Component Library
 
-**Last updated:** 2026-04-13  
+**Last updated:** 2026-04-17  
 **System:** shadcn/ui on Radix UI primitives, customised for Mayil
 
 ---
@@ -108,6 +108,33 @@ Base styles: `rounded-[10px] border border-border bg-surface shadow-card`
   </CardContent>
 </Card>
 ```
+
+---
+
+## MarketingNav
+
+**File:** `src/components/marketing-nav.tsx`  
+**Type:** `'use client'` — reads `usePathname()`, uses Radix UI `DropdownMenu`
+
+Sticky header rendered by `src/app/(marketing)/layout.tsx` on all marketing/public pages.
+
+**Structure:**
+- Left: Mayil wordmark (links to `/`)
+- Centre: Solutions dropdown, Resources dropdown, Product link, Pricing link
+- Right: Sign in link, Request demo (outline), Start free trial (primary)
+
+**Dropdowns:**
+
+| Trigger | Items |
+|---------|-------|
+| Solutions | FMCG & CPG, Ecommerce & D2C, Tech & SaaS, Agencies |
+| Resources | Blog, Use Cases, Case Studies |
+
+Each dropdown item shows a label + one-line description. Hover state: `bg-gold-bg`, label colour `text-gold-dark`.
+
+Active state: trigger text becomes `text-ink font-medium` when `pathname.startsWith(baseHref)`.
+
+**NavDropdown sub-component:** reusable for any label + items + baseHref combination. Implemented as a named internal function inside the file (not exported).
 
 ---
 

@@ -1,6 +1,6 @@
 # Mayil — Architecture Overview
 
-**Last updated:** 2026-04-15  
+**Last updated:** 2026-04-17  
 **Status:** V1 Production
 
 ---
@@ -16,8 +16,17 @@ Mayil is a B2B SaaS that delivers a weekly competitive intelligence brief every 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                          emayil.com                             │
-│                     Marketing landing page                      │
-│                  (Next.js App Router, Vercel)                   │
+│               Marketing & Enterprise website                    │
+│          (Next.js App Router, MDX content, Vercel)              │
+│                                                                 │
+│  /                   Landing page                               │
+│  /solutions/*        Enterprise solutions hub + 4 industry pages│
+│  /blog/*             Thought leadership (MDX)                   │
+│  /use-cases/*        Use case pages (MDX)                       │
+│  /case-studies/*     Customer stories (MDX, hidden until live)  │
+│  /pricing            Plan comparison                            │
+│  /contact            HubSpot CRM demo / contact form            │
+│  /privacy, /terms, /deletion-status   Legal pages               │
 └───────────────────────────┬─────────────────────────────────────┘
                             │
 ┌───────────────────────────▼─────────────────────────────────────┐
@@ -108,12 +117,14 @@ src/
 │                                   subscription, team, brands, brands/[brand_id]
 ├── components/
 │   ├── ui/                         Button, Badge, Card (shadcn copies)
-│   ├── app-nav.tsx                 Top nav
+│   ├── marketing-nav.tsx           Sticky marketing header with Solutions/Resources dropdowns
+│   ├── app-nav.tsx                 Authenticated app top nav
 │   ├── brief/signal-card.tsx       Shared signal card (public + app brief pages)
 │   ├── dashboard/                  WeeklyStatusCard, CompetitorTable, CompetitorSuggestions
 │   ├── onboarding/                 ProgressBar
 │   ├── settings/team-invite-form.tsx
 │   ├── settings/disconnect-button.tsx  OAuth disconnect ('use client')
+│   ├── settings/google-property-form.tsx  GA4 Property ID + GSC site URL inputs
 │   └── upgrade/plan-cards.tsx
 ├── lib/
 │   ├── utils.ts                    cn(), formatCurrency(), PLAN_LIMITS, SIGNAL_LABELS,
@@ -121,12 +132,18 @@ src/
 │   ├── constants.ts                BriefStatus, BRIEF_STATUS_VARIANT, BRIEF_STATUS_LABEL,
 │   │                               BRIEF_VARIANT_LABELS
 │   ├── types.ts                    DbBrand, DbRecipient (shared across settings pages)
+│   ├── mdx.ts                      getAllContent(), getContentBySlug() — MDX content library
 │   ├── platforms.ts                PLATFORMS list + helpers (defaultPlatformsFor,
 │   │                               buildChannels, parseChannels, extractHandle)
 │   └── supabase/
 │       ├── client.ts               Browser client (createBrowserClient)
 │       └── server.ts               Server client + service-role client
 └── proxy.ts                        Clerk middleware (Next.js 16 convention)
+
+content/                            MDX content files (versioned in git)
+├── blog/                           Thought leadership articles
+├── use-cases/                      Use case pages
+└── case-studies/                   Customer stories (status: hidden until published)
 
 apps/
 ├── emails/                         React Email templates (BriefFull, BriefDigest, BriefChannel)
@@ -174,6 +191,36 @@ Sun 7am IST   Delivery — Resend → recipient inboxes
 
 ---
 
+## MDX content system
+
+Marketing editorial content (blog, use-cases, case-studies) is stored as MDX files in `content/` and versioned in git alongside the codebase.
+
+**Frontmatter schema:**
+
+```
+title        string   — Page title
+description  string   — Meta description + listing card excerpt
+date         string   — ISO 8601 (YYYY-MM-DD), used for sort order
+category     string   — Used for grouping on listing pages
+industry     string   — FMCG | Ecommerce | Tech | Agency
+author       string   — Display name
+featured     boolean  — Pin to top of blog listing
+gated        boolean  — Future: gate download behind email capture
+status       string   — draft | published | hidden
+result       string   — Case studies only: headline outcome stat
+```
+
+**Status rules:**
+- `draft` — not shown anywhere
+- `published` — shown in listings and accessible via slug
+- `hidden` — slug page returns 404, not shown in listings (used for case studies until real customer data)
+
+**Rendering:** `next-mdx-remote/rsc` with `remarkGfm`. Static generation via `generateStaticParams`. Styled with `.prose-mayil` CSS class in `globals.css`.
+
+See ADR-012 for the decision to use MDX over a headless CMS.
+
+---
+
 ## Related docs
 
 - [Database schema](database-schema.md)
@@ -181,3 +228,4 @@ Sun 7am IST   Delivery — Resend → recipient inboxes
 - [Auth flow](auth-flow.md)
 - [Payment flow](payment-flow.md)
 - [API integrations](api-integrations.md)
+- [ADR-012: MDX content management](../decisions/ADR-012-mdx-content-management.md)
