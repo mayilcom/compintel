@@ -306,8 +306,8 @@ export default function LandingPage() {
             © {new Date().getFullYear()} Mayil. Competitive intelligence, weekly.
           </p>
           <div className="flex items-center gap-4 text-xs text-muted">
-            <a href="#" className="hover:text-ink transition-colors">Privacy</a>
-            <a href="#" className="hover:text-ink transition-colors">Terms</a>
+            <Link href="/privacy" className="hover:text-ink transition-colors">Privacy</Link>
+            <Link href="/terms" className="hover:text-ink transition-colors">Terms</Link>
             <a href="mailto:hello@emayil.com" className="hover:text-ink transition-colors">hello@emayil.com</a>
           </div>
         </div>

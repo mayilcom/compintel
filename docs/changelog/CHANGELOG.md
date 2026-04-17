@@ -5,6 +5,24 @@ Format: `[version] YYYY-MM-DD — Description`
 
 ---
 
+## [0.1.26] 2026-04-17 — Marketing site: Privacy Policy, Terms of Service, deletion status page
+
+### Added
+
+- **`src/app/(marketing)/layout.tsx`** — shared layout for all marketing/legal pages. Minimal header with Mayil wordmark + Privacy/Terms/email links, matching footer.
+
+- **`src/app/(marketing)/privacy/page.tsx`** — full Privacy Policy at `/privacy`. Covers: data collected (account info, OAuth tokens, Instagram-specific), sub-processors table (Supabase, Clerk, Vercel, Railway, Resend, Anthropic, Apify, Razorpay/Stripe), Instagram section with explicit statement of what we do/don't access, disconnect and deauthorise flows, user rights (access, correction, deletion, portability), cookies (functional only), security, and contact. Required by Meta for Instagram app review and for GDPR compliance.
+
+- **`src/app/(marketing)/terms/page.tsx`** — Terms of Service at `/terms`. Covers: service description, 14-day free trial, subscription and billing (Razorpay/Stripe), cancellation and 7-day refund policy, acceptable use, connected channels (OAuth third-party terms), IP ownership, warranty disclaimer, liability cap (3 months of fees), governing law (India/Bengaluru), and contact.
+
+- **`src/app/(marketing)/deletion-status/page.tsx`** — status page at `/deletion-status?code=XXX`. Shown to users after Instagram data deletion request (linked from `POST /api/instagram/deletion` response). Displays the confirmation code Meta requires.
+
+### Changed
+
+- **`src/app/page.tsx`** — footer Privacy and Terms links updated from `href="#"` to `<Link href="/privacy">` and `<Link href="/terms">`.
+
+---
+
 ## [0.1.25] 2026-04-17 — Instagram: trim OAuth scopes to minimum required
 
 ### Changed
