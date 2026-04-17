@@ -265,7 +265,7 @@ User clicks Disconnect → POST /api/oauth/disconnect { provider }
 | Provider param | oauthKey | Scopes | Env vars needed |
 |---|---|---|---|
 | `meta` | `meta` | `ads_read`, `pages_read_engagement` | `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET` |
-| `instagram` | `instagram` | `instagram_business_basic`, `instagram_business_manage_messages`, `instagram_business_manage_comments`, `instagram_business_content_publish`, `instagram_business_manage_insights` | `INSTAGRAM_APP_ID`, `INSTAGRAM_APP_SECRET` |
+| `instagram` | `instagram` | `instagram_business_basic`, `instagram_business_manage_insights` | `INSTAGRAM_APP_ID`, `INSTAGRAM_APP_SECRET` |
 | `google` | `google` | AdWords read-only, YouTube Analytics read-only | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
 | `linkedin` | `linkedin` | `r_dma_admin_pages_content` | `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET` |
 

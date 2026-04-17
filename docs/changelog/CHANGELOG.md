@@ -5,6 +5,14 @@ Format: `[version] YYYY-MM-DD — Description`
 
 ---
 
+## [0.1.25] 2026-04-17 — Instagram: trim OAuth scopes to minimum required
+
+### Changed
+
+- **`src/app/api/oauth/[provider]/init/route.ts`** — Instagram scopes reduced from 5 to 2: `instagram_business_basic,instagram_business_manage_insights`. Removed `instagram_business_manage_messages`, `instagram_business_manage_comments`, and `instagram_business_content_publish` — Mayil does not send messages, moderate comments, or publish content. Fewer scopes = easier app review and less user friction at the consent screen.
+
+---
+
 ## [0.1.24] 2026-04-17 — Instagram: separate app credentials, deauthorize + deletion webhooks
 
 ### Added

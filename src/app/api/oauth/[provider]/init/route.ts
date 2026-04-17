@@ -25,7 +25,7 @@ function getProviderConfig(provider: string): ProviderConfig | null {
       return {
         authUrl:     'https://www.instagram.com/oauth/authorize',
         clientId:    process.env.INSTAGRAM_APP_ID,
-        scope:       'instagram_business_basic,instagram_business_manage_messages,instagram_business_manage_comments,instagram_business_content_publish,instagram_business_manage_insights',
+        scope:       'instagram_business_basic,instagram_business_manage_insights',
         extraParams: { force_reauth: 'true' },
       }
     case 'google':
