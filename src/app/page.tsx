@@ -308,7 +308,7 @@ export default function LandingPage() {
           <div className="flex items-center gap-4 text-xs text-muted">
             <Link href="/privacy" className="hover:text-ink transition-colors">Privacy</Link>
             <Link href="/terms" className="hover:text-ink transition-colors">Terms</Link>
-            <a href="mailto:hello@emayil.com" className="hover:text-ink transition-colors">hello@emayil.com</a>
+            <Link href="/contact" className="hover:text-ink transition-colors">Contact</Link>
           </div>
         </div>
       </footer>

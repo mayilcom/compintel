@@ -5,6 +5,18 @@ Format: `[version] YYYY-MM-DD — Description`
 
 ---
 
+## [0.1.27] 2026-04-17 — Google scope fix; replace footer email with Contact link
+
+### Fixed
+
+- **`src/app/api/oauth/[provider]/init/route.ts`** — Google scope corrected from `https://www.googleapis.com/auth/adwords.readonly` (invalid — caused Error 400: invalid_scope) to `https://www.googleapis.com/auth/adwords`. The Google Ads API has no readonly variant of this scope.
+
+### Changed
+
+- **`src/app/page.tsx`** and **`src/app/(marketing)/layout.tsx`** — removed `hello@emayil.com` from footers; replaced with a `/contact` link (page to be built). Email address in the footer is a poor UX pattern for a contact method.
+
+---
+
 ## [0.1.26] 2026-04-17 — Marketing site: Privacy Policy, Terms of Service, deletion status page
 
 ### Added

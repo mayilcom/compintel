@@ -11,10 +11,11 @@ export default function MarketingLayout({ children }: { children: React.ReactNod
           <div className="flex items-center gap-4 text-xs text-muted">
             <Link href="/privacy" className="hover:text-ink transition-colors">Privacy</Link>
             <Link href="/terms" className="hover:text-ink transition-colors">Terms</Link>
-            <a href="mailto:hello@emayil.com" className="hover:text-ink transition-colors">hello@emayil.com</a>
+            <Link href="/contact" className="hover:text-ink transition-colors">Contact</Link>
           </div>
         </div>
       </header>
+
       <main>{children}</main>
       <footer className="border-t border-border mt-16">
         <div className="mx-auto max-w-4xl px-6 py-8 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">

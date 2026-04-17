@@ -32,7 +32,7 @@ function getProviderConfig(provider: string): ProviderConfig | null {
       return {
         authUrl:  'https://accounts.google.com/o/oauth2/v2/auth',
         clientId: process.env.GOOGLE_CLIENT_ID,
-        scope:    'https://www.googleapis.com/auth/adwords.readonly https://www.googleapis.com/auth/yt-analytics.readonly',
+        scope:    'https://www.googleapis.com/auth/adwords https://www.googleapis.com/auth/yt-analytics.readonly',
       }
     case 'linkedin':
       return {
