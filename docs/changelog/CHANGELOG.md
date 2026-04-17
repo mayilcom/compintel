@@ -5,6 +5,16 @@ Format: `[version] YYYY-MM-DD — Description`
 
 ---
 
+## [0.1.34] 2026-04-18 — Fix: landing page wired to MarketingNav and new sections
+
+### Fixed
+
+- **`src/app/page.tsx`** — Landing page was outside the `(marketing)/` route group so it never received `MarketingNav`. Replaced the hardcoded inline `<header>` (which only had anchor links to #how-it-works, #channels, #pricing) with `<MarketingNav />`, giving the homepage the same Solutions + Resources dropdowns as all other marketing pages.
+- **Enterprise CTA** on the landing page pricing section now links to `/solutions` instead of being a no-op button.
+- **Landing page footer** expanded from 3 bare links (Privacy / Terms / Contact) to a three-column layout: Solutions (FMCG, Ecommerce, Tech, Agency), Resources (Blog, Use Cases, Case Studies), Company (Contact, Privacy, Terms).
+
+---
+
 ## [0.1.33] 2026-04-17 — Enterprise website: Solutions, Blog, Use Cases, Case Studies, MarketingNav
 
 ### Added

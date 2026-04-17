@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { MarketingNav } from '@/components/marketing-nav'
 
 const CHANNELS = [
   'Instagram', 'YouTube', 'LinkedIn', 'Google Trends',
@@ -88,25 +89,7 @@ const PLANS = [
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-paper font-body">
-      {/* ── Nav ── */}
-      <header className="sticky top-0 z-50 border-b border-border bg-paper/90 backdrop-blur-md">
-        <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
-          <span className="font-display text-lg text-ink">Mayil</span>
-          <nav className="hidden items-center gap-6 text-sm text-muted md:flex">
-            <a href="#how-it-works" className="hover:text-ink transition-colors">How it works</a>
-            <a href="#channels" className="hover:text-ink transition-colors">Channels</a>
-            <a href="#pricing" className="hover:text-ink transition-colors">Pricing</a>
-          </nav>
-          <div className="flex items-center gap-3">
-            <Link href="/sign-in">
-              <Button variant="ghost" size="sm">Sign in</Button>
-            </Link>
-            <Link href="/sign-up">
-              <Button size="sm">Start free trial</Button>
-            </Link>
-          </div>
-        </div>
-      </header>
+      <MarketingNav />
 
       {/* ── Hero ── */}
       <section className="mx-auto max-w-6xl px-6 py-24 text-center">
@@ -291,25 +274,43 @@ export default function LandingPage() {
                 Custom brands, unlimited seats, white-label sending, dedicated onboarding, SLA.
               </p>
             </div>
-            <Button variant="outline" className="shrink-0">
-              Contact sales
-            </Button>
+            <Link href="/solutions">
+              <Button variant="outline" className="shrink-0">
+                See enterprise solutions →
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
 
       {/* ── Footer ── */}
       <footer className="border-t border-border bg-paper">
-        <div className="mx-auto max-w-6xl px-6 py-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="mx-auto max-w-6xl px-6 py-10 flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
           <span className="font-display text-base text-ink">Mayil</span>
-          <p className="text-xs text-muted">
-            © {new Date().getFullYear()} Mayil. Competitive intelligence, weekly.
-          </p>
-          <div className="flex items-center gap-4 text-xs text-muted">
-            <Link href="/privacy" className="hover:text-ink transition-colors">Privacy</Link>
-            <Link href="/terms" className="hover:text-ink transition-colors">Terms</Link>
-            <Link href="/contact" className="hover:text-ink transition-colors">Contact</Link>
+          <div className="flex flex-wrap gap-x-8 gap-y-3 text-xs text-muted">
+            <div className="flex flex-col gap-2">
+              <span className="label-section mb-1">Solutions</span>
+              <Link href="/solutions/fmcg" className="hover:text-ink transition-colors">FMCG & CPG</Link>
+              <Link href="/solutions/ecommerce" className="hover:text-ink transition-colors">Ecommerce & D2C</Link>
+              <Link href="/solutions/tech" className="hover:text-ink transition-colors">Tech & SaaS</Link>
+              <Link href="/solutions/agency" className="hover:text-ink transition-colors">Agencies</Link>
+            </div>
+            <div className="flex flex-col gap-2">
+              <span className="label-section mb-1">Resources</span>
+              <Link href="/blog" className="hover:text-ink transition-colors">Blog</Link>
+              <Link href="/use-cases" className="hover:text-ink transition-colors">Use Cases</Link>
+              <Link href="/case-studies" className="hover:text-ink transition-colors">Case Studies</Link>
+            </div>
+            <div className="flex flex-col gap-2">
+              <span className="label-section mb-1">Company</span>
+              <Link href="/contact" className="hover:text-ink transition-colors">Contact</Link>
+              <Link href="/privacy" className="hover:text-ink transition-colors">Privacy</Link>
+              <Link href="/terms" className="hover:text-ink transition-colors">Terms</Link>
+            </div>
           </div>
+          <p className="text-xs text-muted">
+            © {new Date().getFullYear()} Mayil.
+          </p>
         </div>
       </footer>
     </div>
