@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { MarketingNav } from '@/components/marketing-nav'
 
 const CHANNELS = [
   'Instagram', 'YouTube', 'LinkedIn', 'Google Trends',
@@ -88,9 +87,7 @@ const PLANS = [
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-paper font-body">
-      <MarketingNav />
-
+    <>
       {/* ── Hero ── */}
       <section className="mx-auto max-w-6xl px-6 py-24 text-center">
         <Badge variant="default" className="mb-6 mx-auto">
@@ -122,7 +119,6 @@ export default function LandingPage() {
 
         {/* Brief mockup preview */}
         <div className="mx-auto mt-16 max-w-2xl rounded-[14px] border border-border bg-surface shadow-card overflow-hidden">
-          {/* Top bar */}
           <div className="flex items-center justify-between border-b border-border bg-surface-2 px-5 py-3">
             <div className="flex items-center gap-2">
               <span className="font-display text-sm text-ink">Mayil</span>
@@ -130,7 +126,6 @@ export default function LandingPage() {
             </div>
             <span className="label-section">Apr 14–20, 2026</span>
           </div>
-          {/* Signal preview */}
           <div className="p-5 space-y-3">
             <div className="signal-bar-threat rounded-r-[10px] bg-[#FDECEA] p-4">
               <div className="flex items-center gap-2 mb-1">
@@ -157,7 +152,6 @@ export default function LandingPage() {
               <p className="text-[13px] text-muted mt-1">All creative shows gifting occasions. Campaign started Sep 3.</p>
             </div>
           </div>
-          {/* Closing question */}
           <div className="border-t border-border px-5 py-4 bg-surface-2">
             <p className="text-[13px] text-muted italic">
               Oreo has a Diwali gifting pack running since Sep 3. Does your brand have a festive gifting strategy for Q3 — or will you react after the season opens?
@@ -282,37 +276,6 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-
-      {/* ── Footer ── */}
-      <footer className="border-t border-border bg-paper">
-        <div className="mx-auto max-w-6xl px-6 py-10 flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
-          <span className="font-display text-base text-ink">Mayil</span>
-          <div className="flex flex-wrap gap-x-8 gap-y-3 text-xs text-muted">
-            <div className="flex flex-col gap-2">
-              <span className="label-section mb-1">Solutions</span>
-              <Link href="/solutions/fmcg" className="hover:text-ink transition-colors">FMCG & CPG</Link>
-              <Link href="/solutions/ecommerce" className="hover:text-ink transition-colors">Ecommerce & D2C</Link>
-              <Link href="/solutions/tech" className="hover:text-ink transition-colors">Tech & SaaS</Link>
-              <Link href="/solutions/agency" className="hover:text-ink transition-colors">Agencies</Link>
-            </div>
-            <div className="flex flex-col gap-2">
-              <span className="label-section mb-1">Resources</span>
-              <Link href="/blog" className="hover:text-ink transition-colors">Blog</Link>
-              <Link href="/use-cases" className="hover:text-ink transition-colors">Use Cases</Link>
-              <Link href="/case-studies" className="hover:text-ink transition-colors">Case Studies</Link>
-            </div>
-            <div className="flex flex-col gap-2">
-              <span className="label-section mb-1">Company</span>
-              <Link href="/contact" className="hover:text-ink transition-colors">Contact</Link>
-              <Link href="/privacy" className="hover:text-ink transition-colors">Privacy</Link>
-              <Link href="/terms" className="hover:text-ink transition-colors">Terms</Link>
-            </div>
-          </div>
-          <p className="text-xs text-muted">
-            © {new Date().getFullYear()} Mayil.
-          </p>
-        </div>
-      </footer>
-    </div>
+    </>
   )
 }

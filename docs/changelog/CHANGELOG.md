@@ -5,7 +5,16 @@ Format: `[version] YYYY-MM-DD — Description`
 
 ---
 
-## [0.1.34] 2026-04-18 — Fix: landing page wired to MarketingNav and new sections
+## [0.1.34] 2026-04-18 — Fix: landing page moved into (marketing) route group
+
+### Fixed
+
+- **`src/app/(marketing)/page.tsx`** — Landing page moved from `src/app/page.tsx` into the `(marketing)/` route group so it inherits `MarketingNav` and the shared footer automatically via `(marketing)/layout.tsx`. Old inline header and footer removed from the page.
+- **`src/app/page.tsx`** — Removed (git rm). Was outside the route group so it never received the nav or any updates to the marketing layout.
+- **`src/app/(marketing)/layout.tsx`** — Footer upgraded from a single-row bar (Privacy / Terms only) to a three-column layout: Solutions (FMCG, Ecommerce, Tech, Agency), Resources (Blog, Use Cases, Case Studies), Company (Contact, Privacy, Terms). Applied to all marketing pages.
+- **Enterprise CTA** on the pricing section now links to `/solutions` instead of a no-op button.
+
+---
 
 ### Fixed
 
