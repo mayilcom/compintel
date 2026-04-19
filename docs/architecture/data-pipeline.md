@@ -1,6 +1,6 @@
 # Data Pipeline
 
-**Last updated:** 2026-04-14  
+**Last updated:** 2026-04-19  
 **Runtime:** Railway (Node.js workers)
 
 ---
@@ -188,6 +188,44 @@ Each stage checks `week_start = current_week()` before inserting. Duplicate runs
 - AI Interpreter: skips signals that already have `headline IS NOT NULL`
 - Brief Assembler: upserts brief row
 - Delivery: checks `sent_at IS NULL` before sending (no double-send)
+
+---
+
+## Accelerated testing (no real users)
+
+The differ requires two weeks of snapshots to produce deltas. On first launch, the pipeline runs a baseline collection only — no brief is generated until the second Sunday.
+
+To test the full pipeline end-to-end without waiting a week:
+
+**Step 1 — Seed previous week snapshots**
+
+```bash
+cd apps/workers
+npx tsx src/scripts/seed-prev-week.ts
+```
+
+`seed-prev-week.ts` reads this week's successful snapshots, duplicates them with `week_start` set to 7 days earlier, and fuzzes numeric metrics by ±15–40% to generate realistic deltas. Safe to re-run (upserts on conflict).
+
+**Step 2 — Trigger each Railway service manually in sequence**
+
+In the Railway dashboard, open each service and click **"Run now"**:
+
+1. `differ` — waits ~2 min
+2. `signal-ranker` — waits ~1 min
+3. `ai-interpreter` — waits ~3–5 min (calls Claude API)
+4. `brief-assembler` — waits ~2 min
+5. `delivery` — sends emails to configured recipients
+
+**Cleanup after testing**
+
+Remove seeded rows from Supabase:
+```sql
+DELETE FROM snapshots
+WHERE week_start = '<prev-week-date>'
+  AND source = 'seed';
+```
+
+Also clear `differ_results`, `signals`, and `briefs` for the test week if you want a clean slate before the real first Sunday run.
 
 ---
 

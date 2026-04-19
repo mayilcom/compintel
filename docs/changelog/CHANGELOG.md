@@ -5,6 +5,24 @@ Format: `[version] YYYY-MM-DD — Description`
 
 ---
 
+## [0.1.35] 2026-04-19 — Test utility: seed previous week snapshots
+
+### Added
+
+- **`apps/workers/src/scripts/seed-prev-week.ts`** — One-time script that reads this week's successful snapshots and duplicates them into the prior week slot (`week_start - 7 days`) with metrics fuzzed ±15–40%. Allows running the full differ → delivery pipeline on the same day as the first collector run, without waiting a week for real deltas. Safe to re-run (upserts on conflict). Seeded rows are tagged `source = 'seed'` for easy cleanup.
+
+- **`docs/architecture/data-pipeline.md`** — Added "Accelerated testing" section documenting the seed script, manual Railway trigger sequence, and Supabase cleanup SQL.
+
+### Usage
+
+```bash
+cd apps/workers && npx tsx src/scripts/seed-prev-week.ts
+```
+
+Then trigger differ → signal-ranker → ai-interpreter → brief-assembler → delivery manually via Railway dashboard.
+
+---
+
 ## [0.1.34] 2026-04-18 — Fix: landing page moved into (marketing) route group
 
 ### Fixed
