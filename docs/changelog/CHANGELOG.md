@@ -9,14 +9,17 @@ Format: `[version] YYYY-MM-DD — Description`
 
 ### Added
 
-- **`apps/workers/src/scripts/seed-prev-week.ts`** — One-time script that reads this week's successful snapshots and duplicates them into the prior week slot (`week_start - 7 days`) with metrics fuzzed ±15–40%. Allows running the full differ → delivery pipeline on the same day as the first collector run, without waiting a week for real deltas. Safe to re-run (upserts on conflict). Seeded rows are tagged `source = 'seed'` for easy cleanup.
+- **`apps/workers/src/scripts/seed-prev-week.ts`** — One-time script that reads this week's successful snapshots and duplicates them into the prior week slot (`week_start - 7 days`) with metrics fuzzed ±15–40%. Allows running the full differ → delivery pipeline on the same day as the first collector run, without waiting a week for real deltas. Safe to re-run (upserts on conflict). Seeded rows are tagged `source = 'seed'` for easy cleanup. Loads root `.env.local` via `dotenv` so it works from any shell without manual env setup.
+
+- **`apps/workers/package.json`** — Added `"seed": "tsx src/scripts/seed-prev-week.ts"` script and `dotenv ^16` devDependency. Run with `npm run seed` from `apps/workers/`.
 
 - **`docs/architecture/data-pipeline.md`** — Added "Accelerated testing" section documenting the seed script, manual Railway trigger sequence, and Supabase cleanup SQL.
 
 ### Usage
 
 ```bash
-cd apps/workers && npx tsx src/scripts/seed-prev-week.ts
+cd apps/workers
+npm run seed
 ```
 
 Then trigger differ → signal-ranker → ai-interpreter → brief-assembler → delivery manually via Railway dashboard.

@@ -4,13 +4,17 @@
  * Duplicates this week's snapshots into the previous week slot with
  * slightly modified metrics so the differ produces meaningful deltas.
  *
- * Usage:
- *   npx tsx src/scripts/seed-prev-week.ts
+ * Usage (from apps/workers/):
+ *   npm run seed
  *
  * Safe to run multiple times — upserts by (brand_id, channel, week_start).
- * Delete with:
- *   DELETE FROM snapshots WHERE week_start = '<prev-week-date>'
+ * Cleanup: DELETE FROM snapshots WHERE source = 'seed';
  */
+
+// Load env from project root .env.local (works locally; Railway injects vars directly)
+import { config } from 'dotenv'
+import { resolve } from 'path'
+config({ path: resolve(__dirname, '../../../../.env.local') })
 
 import { db } from '../lib/supabase'
 
