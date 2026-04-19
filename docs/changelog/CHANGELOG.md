@@ -13,6 +13,10 @@ Format: `[version] YYYY-MM-DD — Description`
 
 - **`apps/workers/package.json`** — Added `"seed": "tsx src/scripts/seed-prev-week.ts"` script and `dotenv ^16` devDependency. Run with `npm run seed` from `apps/workers/`.
 
+### Fixed
+
+- **`apps/workers/src/scripts/seed-prev-week.ts`** — Replaced static `import { db }` with `require('../lib/supabase')` after the dotenv `config()` call. esbuild hoists all `import` declarations to the top of the file even in CJS mode, so `supabase.ts` was reading `process.env` before dotenv had populated it. Using `require()` (which is not hoisted) ensures env vars are loaded first.
+
 - **`docs/architecture/data-pipeline.md`** — Added "Accelerated testing" section documenting the seed script, manual Railway trigger sequence, and Supabase cleanup SQL.
 
 ### Usage

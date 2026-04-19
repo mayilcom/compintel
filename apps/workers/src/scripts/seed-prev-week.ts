@@ -11,12 +11,15 @@
  * Cleanup: DELETE FROM snapshots WHERE source = 'seed';
  */
 
-// Load env from project root .env.local (works locally; Railway injects vars directly)
+// Load env before any module that reads process.env.
+// dotenv must run first — static imports are hoisted by esbuild even in CJS mode,
+// so supabase.ts would read env vars before config() ran. require() is not hoisted.
 import { config } from 'dotenv'
 import { resolve } from 'path'
 config({ path: resolve(__dirname, '../../../../.env.local') })
 
-import { db } from '../lib/supabase'
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { db } = require('../lib/supabase') as typeof import('../lib/supabase')
 
 function currentWeekStart(): string {
   const d = new Date()
