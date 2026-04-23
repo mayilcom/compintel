@@ -5,6 +5,37 @@ Format: `[version] YYYY-MM-DD — Description`
 
 ---
 
+## [0.1.39] 2026-04-24 — Intelligence layer V1 — email feedback links, admin verifier queue, channel-pack classifier
+
+Completes the remaining ADR-013 V1 UI / onboarding items. The email brief is now instrumented (signed-URL links → landing page), admin has a review queue for dropped claims, and new accounts get auto-classified into a channel pack at brand onboarding.
+
+### Added
+
+- **`src/lib/feedback-token.ts` + `apps/workers/src/lib/feedback-token.ts`** — Shared HMAC-SHA256 signer / verifier for email-brief feedback URLs. Same `RESEND_API_KEY`-backed pattern as the unsubscribe link. No expiry (email archives should keep working). Token binds `(signal_id, account_id, action)` so a `useful` token cannot be swapped for `not_useful` on the wire.
+- **`src/app/feedback/page.tsx` + `src/app/feedback/confirm-form.tsx`** — Landing page for email feedback links. Server component validates the token, fetches the signal context (headline, channel, competitor), and renders a confirmation card with the signal shown. Optional note textarea. Client form POSTs to `/api/feedback/email`. Uses `paper`/`surface`/`gold-bg` tokens and the warm editorial palette.
+- **`src/app/api/feedback/email/route.ts`** — Unauthenticated endpoint. Accepts `{ s, a, v, t, note? }`. Validates HMAC token + re-confirms signal ownership, then inserts into `signal_feedback` (for `useful` / `not_useful`) or `signal_actions` (for `acted_on`) with `source='email'`.
+- **`apps/emails/src/components/SignalCard.tsx`** — Optional feedback row (`✓ Acted on this` · `Useful` · `Not useful`) rendered beneath the existing source link when `feedback_urls` is present on the `SignalData`. Subtle — inline links in `mono / 10px / muted`, with a thin divider above. No buttons, no emoji CTAs.
+- **`src/app/admin/verifier-queue/page.tsx`** — Admin review queue for verifier decisions. Filters by `dropped` / `retried` / `pending` / all. Shows each signal's claim type, verifier reason, attempt count, account, competitor, and week. Surfaces patterns post-hoc so we can tune prompts / thresholds.
+- **`src/lib/channel-packs.ts`** — Rule-based `classifyChannelPack({ brandName, domain, category })`. Maps FMCG/Fashion/Retail/SaaS/Other to default pack keys; layers on brand-name / domain hints (fintech keywords → `fintech`, `enterprise`/`platform`/`labs` → `b2b_saas_enterprise`, agency suffixes → `agency`). V2 can swap this for an LLM-backed website classifier without changing callers.
+
+### Changed
+
+- **`apps/workers/src/workers/brief-assembler.ts`** — `toEmailSignal()` now takes `accountId` and `baseUrl` and populates the three `feedback_urls` per signal. Existing call site updated; no template changes required beyond the SignalCard above.
+- **`src/app/admin/layout.tsx`** — Added "Verifier queue" to the admin top nav between Briefs and Accounts.
+- **`src/app/api/onboarding/brand/route.ts`** — Calls `classifyChannelPack()` from the brand name + domain + mapped category, and writes the resulting `channel_pack_key` onto the `accounts` row. Also returned in the response so the client can surface the classification later if needed.
+
+### Why
+
+Email-brief reach beats app-brief reach — most recipients read in their inbox and never open the web view. Instrumenting only the app leaves the pattern-precision measurement data sparse. The signed-URL pattern gives us instrumentation without forcing auth on a one-way email channel. The admin queue closes the verifier feedback loop (we can spot which claim types are getting dropped and tune accordingly). Channel-pack auto-classification removes an onboarding friction point — new accounts land with a sensible default instead of an empty channel selection.
+
+### Not yet in this commit
+
+- LLM-backed channel-pack classification (deferred to V2 per ADR-013 — rule-based unblocks V1 launch).
+- Settings → channel pack override UI (account-level column exists; Settings page wiring is a small follow-up).
+- Railway service creation for `synthesizer` + `verifier` (manual dashboard task — config is in `apps/workers/railway.toml`).
+
+---
+
 ## [0.1.38] 2026-04-24 — Intelligence layer V1 — app brief feedback + action instrumentation
 
 First UI surface for the intelligence layer. Subtle per-signal feedback and "Acted on this" toggle appear on the authenticated app brief page. Writes to `signal_feedback` and `signal_actions` (migration 009 tables).

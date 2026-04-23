@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth, currentUser } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { classifyChannelPack } from '@/lib/channel-packs'
 
 const CATEGORY_MAP: Record<string, string> = {
   'FMCG':          'FMCG',
@@ -100,13 +101,22 @@ export async function POST(req: NextRequest) {
     accountId = (existing as { account_id: string }).account_id
   }
 
+  // Channel-pack auto-classification — rule-based, keyed off category
+  // with light brand-name / domain hints. User can override in Settings.
+  const channelPackKey = classifyChannelPack({
+    brandName: (brand_name as string).trim(),
+    domain:    typeof domain === 'string' ? domain : null,
+    category:  dbCategory,
+  })
+
   // ── Update account meta + look up existing brand in parallel ──
   const [, existingBrandResult] = await Promise.all([
     db
       .from('accounts')
       .update({
-        category: dbCategory,
-        market:   market as string,
+        category:         dbCategory,
+        market:           market as string,
+        channel_pack_key: channelPackKey,
         ...(country && typeof country === 'string' ? { country } : {}),
       })
       .eq('account_id', accountId),
@@ -152,5 +162,8 @@ export async function POST(req: NextRequest) {
     result = data
   }
 
-  return NextResponse.json({ brand_id: (result as { brand_id: string }).brand_id })
+  return NextResponse.json({
+    brand_id:         (result as { brand_id: string }).brand_id,
+    channel_pack_key: channelPackKey,
+  })
 }

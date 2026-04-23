@@ -10,6 +10,11 @@ export interface SignalData {
   body: string
   implication: string
   source_url?: string
+  feedback_urls?: {
+    useful:     string
+    not_useful: string
+    acted_on:   string
+  }
 }
 
 interface SignalCardProps {
@@ -136,7 +141,7 @@ export function SignalCard({ signal }: SignalCardProps) {
 
       {/* Source link */}
       {signal.source_url && (
-        <Section style={{ padding: '0 20px 14px' }}>
+        <Section style={{ padding: '0 20px 8px' }}>
           <Link
             href={signal.source_url}
             style={{
@@ -150,6 +155,51 @@ export function SignalCard({ signal }: SignalCardProps) {
           </Link>
         </Section>
       )}
+
+      {/* Feedback row — subtle, no buttons, just inline links */}
+      {signal.feedback_urls && (
+        <Section style={{
+          padding: '10px 20px 14px',
+          borderTop: `1px solid ${colors.border}`,
+        }}>
+          <table width="100%" cellPadding={0} cellSpacing={0}>
+            <tbody>
+              <tr>
+                <td style={{ verticalAlign: 'middle' }}>
+                  <Link href={signal.feedback_urls.acted_on} style={feedbackLinkStyle}>
+                    ✓ Acted on this
+                  </Link>
+                </td>
+                <td align="right" style={{ verticalAlign: 'middle' }}>
+                  <Link href={signal.feedback_urls.useful} style={feedbackLinkStyle}>
+                    Useful
+                  </Link>
+                  <span style={{
+                    ...feedbackLinkStyle,
+                    color: colors.border,
+                    margin: '0 8px',
+                    textDecoration: 'none',
+                  }}>
+                    ·
+                  </span>
+                  <Link href={signal.feedback_urls.not_useful} style={feedbackLinkStyle}>
+                    Not useful
+                  </Link>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </Section>
+      )}
     </Section>
   )
+}
+
+const feedbackLinkStyle = {
+  fontFamily: fonts.mono,
+  fontSize: '10px',
+  color: colors.muted,
+  textDecoration: 'none',
+  textTransform: 'uppercase' as const,
+  letterSpacing: '0.06em',
 }

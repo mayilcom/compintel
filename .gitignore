@@ -37,3 +37,4 @@ Thumbs.db
 
 # Claude Code — local settings (personal overrides, not for team)
 .claude/settings.local.json
+.claude/skills

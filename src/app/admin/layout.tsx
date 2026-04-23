@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 
 const NAV_LINKS = [
   { href: '/admin/briefs', label: 'Briefs' },
+  { href: '/admin/verifier-queue', label: 'Verifier queue' },
   { href: '/admin/accounts', label: 'Accounts' },
   { href: '/admin/lookup', label: 'Brand lookup' },
 ]

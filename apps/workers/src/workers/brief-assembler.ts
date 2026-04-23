@@ -34,6 +34,7 @@ import { makeLogger } from '../lib/logger'
 import { BriefFull, BriefChannelFocus, BriefExecutiveDigest } from '@mayil/emails'
 import type { SignalData } from '@mayil/emails'
 import { unsubscribeUrl } from '../lib/unsubscribe'
+import { feedbackUrl } from '../lib/feedback-token'
 
 const log    = makeLogger('brief-assembler')
 const client = new Anthropic()
@@ -112,7 +113,13 @@ CLOSING: A single strategic question that synthesises the top 2–3 signals into
 
 // ── Signal → email shape ──────────────────────────────────────
 
-function toEmailSignal(row: Record<string, unknown>, competitorName: string): SignalData {
+function toEmailSignal(
+  row: Record<string, unknown>,
+  competitorName: string,
+  accountId: string,
+  baseUrl: string,
+): SignalData {
+  const signalId = row.signal_id as string
   return {
     signal_type: row.signal_type as SignalData['signal_type'],
     channel:     row.channel as string,
@@ -121,6 +128,11 @@ function toEmailSignal(row: Record<string, unknown>, competitorName: string): Si
     body:        row.body as string,
     implication: row.implication as string,
     source_url:  (row.sources as string[])?.[0],
+    feedback_urls: {
+      useful:     feedbackUrl(signalId, accountId, 'useful',     baseUrl),
+      not_useful: feedbackUrl(signalId, accountId, 'not_useful', baseUrl),
+      acted_on:   feedbackUrl(signalId, accountId, 'acted_on',   baseUrl),
+    },
   }
 }
 
@@ -232,7 +244,12 @@ async function run() {
       // the template redesign lands; web view uses activity_catalog directly.
       const primarySignals = leadCluster ? leadSignals : signals
       const emailSignals: SignalData[] = primarySignals.map(s =>
-        toEmailSignal(s, (s.brands as { brand_name: string })?.brand_name ?? '')
+        toEmailSignal(
+          s,
+          (s.brands as { brand_name: string })?.brand_name ?? '',
+          accountId,
+          APP_URL,
+        )
       )
 
       // Generate narrative. If a lead cluster exists, anchor the headline
