@@ -5,6 +5,31 @@ Format: `[version] YYYY-MM-DD — Description`
 
 ---
 
+## [0.1.38] 2026-04-24 — Intelligence layer V1 — app brief feedback + action instrumentation
+
+First UI surface for the intelligence layer. Subtle per-signal feedback and "Acted on this" toggle appear on the authenticated app brief page. Writes to `signal_feedback` and `signal_actions` (migration 009 tables).
+
+### Added
+
+- **`src/app/api/signals/[signal_id]/feedback/route.ts`** — `POST` endpoint. Body: `{ useful: boolean, reason?: string }`. Verifies signal belongs to the authenticated account, inserts a new row in `signal_feedback` with `source='app'`. Multiple rows per `(signal, account)` are allowed — latest row is the current state.
+- **`src/app/api/signals/[signal_id]/action/route.ts`** — `POST` endpoint. Body: `{ acted_on: boolean, notes?: string }`. Mirrors the feedback route for the "Acted on this" toggle; writes to `signal_actions`.
+- **`src/components/brief/signal-feedback-controls.tsx`** — Client component rendering subtle thumbs-up / thumbs-down icons (no labels, no toast) plus an "Acted on this" pill. Icons use 14px hand-drawn SVGs; pill flips to `bg-gold-bg text-gold-dark` when active. Optimistic local state with rollback on API failure. No counts surfaced to user.
+
+### Changed
+
+- **`src/app/app/briefs/[brief_id]/page.tsx`** — Renders `SignalFeedbackControls` beneath each `SignalCard`. Fetches the latest-per-signal feedback and action rows server-side (ordered by `created_at DESC`, first row wins per signal) so controls render in correct initial state on page load.
+
+### Why
+
+Direct closure of ADR-013 §5 (instrumentation) for the app surface. Data is already being captured for pattern-precision measurement as briefs ship — the 80% precision target for `pattern` claims is only measurable once CMOs can register "this was useful" / "this was noise."
+
+### Not yet in this commit
+
+- Signed-URL landing page for email-brief feedback links (separate surface — email reach is highest but needs its own anti-spam plumbing and confirmation page).
+- Admin dashboard view for verifier-rejected signals + post-hoc feedback review queue.
+
+---
+
 ## [0.1.37] 2026-04-24 — Intelligence layer V1 — synthesizer, verifier, migration 009
 
 Implementation of the scope locked in ADR-013 / PRD v1.2. Backend + database complete; UI (feedback controls, signed-URL landing page, admin verifier queue) is the next commit.

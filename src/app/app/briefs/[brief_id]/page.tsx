@@ -8,6 +8,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { normalizeSources, weekRangeLabel } from '@/lib/utils'
 import { SignalCard } from '@/components/brief/signal-card'
 import type { SignalCardData } from '@/components/brief/signal-card'
+import { SignalFeedbackControls } from '@/components/brief/signal-feedback-controls'
 
 export const metadata = { title: 'Brief' }
 
@@ -59,6 +60,8 @@ export default async function BriefDetailPage({
   // Fetch signals with competitor brand names
   const signalIds = (b.signal_ids as string[]) ?? []
   const signals: SignalCardData[] = []
+  const feedbackState: Record<string, 'none' | 'useful' | 'not_useful'> = {}
+  const actionState:   Record<string, boolean> = {}
 
   if (signalIds.length > 0) {
     const { data: sigRows } = await db
@@ -79,6 +82,34 @@ export default async function BriefDetailPage({
           implication:     s.implication as string | null,
           sources:         normalizeSources(s.sources),
         })
+      }
+    }
+
+    // Latest feedback per signal for this account (most recent row wins)
+    const { data: fbRows } = await db
+      .from('signal_feedback')
+      .select('signal_id, useful, created_at')
+      .eq('account_id', accountId)
+      .in('signal_id', signalIds)
+      .order('created_at', { ascending: false })
+
+    for (const row of (fbRows as Array<{ signal_id: string; useful: boolean }> | null) ?? []) {
+      if (!(row.signal_id in feedbackState)) {
+        feedbackState[row.signal_id] = row.useful ? 'useful' : 'not_useful'
+      }
+    }
+
+    // Latest action per signal for this account
+    const { data: actRows } = await db
+      .from('signal_actions')
+      .select('signal_id, acted_on, created_at')
+      .eq('account_id', accountId)
+      .in('signal_id', signalIds)
+      .order('created_at', { ascending: false })
+
+    for (const row of (actRows as Array<{ signal_id: string; acted_on: boolean }> | null) ?? []) {
+      if (!(row.signal_id in actionState)) {
+        actionState[row.signal_id] = row.acted_on
       }
     }
   }
@@ -158,7 +189,14 @@ export default async function BriefDetailPage({
           <div className="px-6 py-5 flex flex-col gap-4 border-b border-border">
             <p className="label-section">Signals this week</p>
             {signals.map((signal) => (
-              <SignalCard key={signal.signal_id} signal={signal} />
+              <div key={signal.signal_id}>
+                <SignalCard signal={signal} />
+                <SignalFeedbackControls
+                  signalId={signal.signal_id}
+                  initialFeedback={feedbackState[signal.signal_id] ?? 'none'}
+                  initialActedOn={actionState[signal.signal_id] ?? false}
+                />
+              </div>
             ))}
           </div>
         )}
