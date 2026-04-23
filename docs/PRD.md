@@ -1,9 +1,9 @@
 # Mayil — Product Requirements Document
 
-**Version:** 1.1  
-**Date:** 2026-04-14  
-**Status:** V1 in build  
-**Product:** Mayil — Weekly competitive intelligence for founders and marketing heads  
+**Version:** 1.2
+**Date:** 2026-04-23
+**Status:** V1 in build
+**Product:** Mayil — Weekly competitive intelligence for founders and marketing heads
 **Domain:** emayil.com
 
 ### Revision history
@@ -12,6 +12,7 @@
 |---------|------|---------|
 | 1.0 | 2026-04-13 | Initial PRD |
 | 1.1 | 2026-04-14 | Added: Brief #1 baseline spec, unsubscribe mechanism, preview experience, email deliverability, data deletion detail, compliance (DPDP/GST), manual onboarding for first 5 clients, support model, all API route specs, UpgradeModal spec. Fixed: brief status name inconsistency (admin mock vs. DB), plan limits alignment with migration 002. |
+| 1.2 | 2026-04-23 | **Intelligence layer V1** added (synthesizer + verifier + quality model — see [ADR-013](decisions/ADR-013-intelligence-layer-v1.md)). Brief structure refreshed (lead story + supporting + always-on activity catalog). Channel model reworked into Tier 1 / Tier 2 with channel packs by category. Website added as default channel for all packs. X (Twitter) moved from Agency-only to PLG add-on (post-revenue). Pipeline schedule shifted: collector to Sat 8pm IST, two new stages added, delivery preserved at Sun 7am IST. Signal feedback + "Acted on this" instrumentation added. Marketing claims scoped to "competitor activity," not "competitor spend." |
 
 ---
 
@@ -177,39 +178,58 @@ Mayil has four surfaces:
 
 ## 7. The brief — core deliverable
 
-### Structure
+### Structure (v1.2 — investigative journalist model)
+
+The brief no longer surfaces a fixed top-5 ranked list of signals. From v1.2 onward, the synthesizer worker (see [ADR-013](decisions/ADR-013-intelligence-layer-v1.md)) determines whether the week has a coherent story; the brief is rendered accordingly.
 
 ```
-Header bar         Mayil wordmark | Brief #12 | Week range
+Header bar              Mayil wordmark | Brief #12 | Week range
 ──────────────────────────────────────────────────────────
-This week's story  Lead headline (DM Serif, 22px)
-                   Summary paragraph (2–3 sentences)
+[Lead Story]            ← when synthesis finds a verified cluster
+                        Story headline (DM Serif, 22px)
+                        Story body (2–3 paragraphs)
+                        Cluster evidence — channels involved, competitor, span
 ──────────────────────────────────────────────────────────
-Signal 1           Type badge | Channel · Competitor
-(e.g. Threat)      Signal headline (bold)
-                   Signal body (2–3 sentences, data-backed)
-                   ┌─ What this means for you ──────────┐
-                   │ Implication (names client brand)    │
-                   └────────────────────────────────────┘
-                   Source link
+[Supporting Evidence]   ← when lead story exists
+                        Each corroborating signal:
+                          Type badge | Channel · Competitor
+                          Headline (fact + source link)
+                          Body (2–3 sentences)
+                          Implication (italic, marked as interpretation)
+                          ┌─ Feedback (subtle) ─┐  ┌ Acted on this ┐
 ──────────────────────────────────────────────────────────
-Signal 2           (same structure, different type)
-Signal 3           (same structure)
+[This Week's Activity]  ← always present (honest catalog)
+                        Verified surface movements not in any cluster.
+                        Compact list: channel · competitor · one-line fact.
+                        No interpretation, no implications. Just data.
 ──────────────────────────────────────────────────────────
-This week's        Closing strategic question (italic)
-question
+[Closing Question]      ← optional CMO prompt (only when lead story present)
 ──────────────────────────────────────────────────────────
-Footer             Brief #N | Date range | View in browser | Unsubscribe
+Footer                  Brief #N | Date range | View in browser | Unsubscribe
 ```
+
+**Honest quiet weeks:** ~30–60% of weeks (depending on category) will have no lead story. The brief still ships, with the activity catalog and no closing question. No manufactured narratives. The "Mayil reports the actuals" principle is honored.
 
 ### Writing standards
 
-Every signal must meet these standards. The admin brief editor uses these as the review checklist.
+Every signal must meet these standards. The admin brief editor and the verifier worker (v1.2+) both use these as review checks.
 
-- **Headline:** One sentence, max 120 characters. Must contain a specific number or data point. No vague language. Good: *"Britannia posted 14 times in 4 days — 178% above their 4-week average."* Bad: *"Competitor posted more than usual."*
+- **Headline:** One sentence, max 120 characters. Must contain a specific number or data point that traces back to a `snapshot_id` row. No vague language. Good: *"Britannia posted 14 times in 4 days — 178% above their 4-week average."* Bad: *"Competitor posted more than usual."*
 - **Body:** 2–3 sentences. Must cite the data that produced the signal. Must reference the competitor by name. Must state what channel the data came from.
-- **Implication:** 1–2 sentences. Must name the client's brand specifically. Must state what to do or watch — not just restate what happened.
-- **Closing question:** Synthesises the top 2–3 signals into a single strategic question for the client. Not a summary — a provocation that prompts action. Only included in the `full` brief variant.
+- **Implication:** 1–2 sentences. Must name the client's brand specifically. Must state what to do or watch — not just restate what happened. Marked as interpretation in the brief (italic / muted treatment).
+- **Closing question:** Synthesises the lead story and supporting signals into a single strategic question for the client. Not a summary — a provocation that prompts action. Only rendered when a lead story exists (omitted on quiet weeks).
+- **Predictions blocked:** No future-tense claims about what competitors will do next. Verifier flags any claim with hedge words (`will`, `likely`, `may`, `could`, `expected to`) and rejects it.
+
+### Quality layers (v1.2+)
+
+Every claim in the brief is one of four `claim_type` values, each with different acceptance criteria enforced by the verifier worker:
+
+| Claim type | Acceptance criteria | Where it appears |
+|---|---|---|
+| **Fact** | 100% verifiable against source data. Zero tolerance — verifier rejects on any mismatch. | Headline numbers, signal body data points, activity catalog entries |
+| **Pattern** | 80% precision target. Must be supported by ≥ 2 source signals. Measured via feedback button. | Lead story headline, cluster summary |
+| **Implication** | Best-effort. Honest opinion, not fact. Always marked as interpretation in UI. | "What this means for you" sentences |
+| **Prediction** | **Blocked in V1.** Hard reject by verifier. | Never appears |
 
 ### Brief variants
 
@@ -241,17 +261,21 @@ The first brief for any account has no prior week to diff against. The signal ra
 
 **Baseline establishes by Week 3:** By the third brief, two prior snapshots exist and full delta signals are available.
 
-### Weekly timeline
+### Weekly timeline (v1.2 — 8 stages)
 
-| Time (IST) | Event |
-|-----------|-------|
-| Saturday 11pm | Collection workers run for all accounts |
-| Sunday 2am | Differ computes week-over-week deltas |
-| Sunday 3am | Signal ranker scores all deltas |
-| Sunday 4am | AI interpreter generates signal copy |
-| Sunday 5am | Brief assembler renders HTML |
-| **Sunday 5am–7am** | **Preview window** |
-| **Sunday 7am** | **Delivery — brief sent to all active recipients** |
+| Time (IST) | Stage | Worker |
+|-----------|-------|--------|
+| Saturday 8pm | Collection — scrape all enabled channels | `collector` |
+| Saturday 11pm | Differ — week-over-week deltas | `differ` |
+| Sunday 12am | Signal ranker — score all deltas | `signal-ranker` |
+| Sunday 1am | **Synthesizer — cluster signals into stories (new in v1.2)** | `synthesizer` |
+| Sunday 2am | AI interpreter — generates signal copy with `claim_type` | `ai-interpreter` |
+| Sunday 3am | **Verifier — reconciles every claim against source data (new in v1.2)** | `verifier` |
+| Sunday 4am | Brief assembler — renders HTML with new structure | `brief-assembler` |
+| **Sunday 4am–7am** | **Preview window** | — |
+| **Sunday 7am** | **Delivery — brief sent to all active recipients** | `delivery` |
+
+Each stage has a 1-hour budget. Stages exceeding 1 hour trigger a Slack alert. Sunday-morning manual intervention is acceptable. The 7am delivery promise is preserved.
 
 ### Preview experience
 
@@ -268,32 +292,51 @@ Between 5am and 7am IST on Sundays, the brief is assembled but not yet delivered
 
 ## 8. Channels tracked
 
-### V1 channels (all plans)
+Channels are organised into Tier 1 (must-have, robust to maintain) and Tier 2 (default for relevant categories, varying robustness). A `channel_packs` table maps brand category → default channel set so onboarding shows the right options without requiring the user to know which channels matter.
+
+### Tier 1 — defaults for every pack
 
 | Channel | What's collected | Signal examples |
 |---------|-----------------|-----------------|
-| **Instagram** | Post count, engagement rate, story activity, paid partnerships | Post spike, engagement drop, influencer campaign |
 | **Meta Ads Library** | Active ads, new creatives, stopped campaigns, targeting age/gender | New ad launch, creative angle shift, campaign start/stop |
-| **Amazon / Quick Commerce** | Product rating, review volume, review sentiment, Blinkit/Swiggy presence | Rating drop, packaging complaints, new ASIN listing |
-| **News / PR** | Press mentions, Google News, RSS feeds, press releases | Funding announcement, product launch, leadership change |
-| **Google Ads Transparency** | Active search ads, ad copy, estimated run duration | New keyword targeting, campaign change |
+| **Google Ads Transparency** | Active search/display ads, ad copy, estimated run duration | New keyword targeting, campaign change |
+| **Google Search SERP** | Position changes, AI Overview presence, featured snippets | Brand position shift, new content ranking |
+| **YouTube** (Data API) | Upload cadence, view velocity, paid promotion detection | Channel push, viral upload |
+| **Amazon** (D2C/FMCG packs) | Product rating, review volume, review sentiment | Rating drop, packaging complaints, new ASIN listing |
+| **News / PR** (RSS + Google News) | Press mentions, press releases | Funding announcement, product launch, leadership change |
+| **Email / newsletter** | Competitor newsletter content (signup → archive parse) | Offer cadence, positioning shifts, segmentation changes |
+| **Website** | Homepage diff + pricing page diff + blog index + jobs page diff | Positioning shifts, pricing strategy changes, hiring signal |
 
-### V1 channels (Growth+ only)
+### Tier 2 — pack-dependent
 
-| Channel | What's collected |
-|---------|-----------------|
-| **LinkedIn** | Company page posts, follower growth, job postings as signal |
-| **YouTube** | Upload cadence, view velocity, paid promotion detection |
+| Channel | Best for | Notes |
+|---------|---------|-------|
+| **Instagram** | D2C, FMCG, beauty | Apify scraper, fragile |
+| **LinkedIn** | B2B SaaS, agencies | Apify scraper, fragile |
+| **G2 / Capterra / Trustpilot** | B2B SaaS | Scrapable, ToS-grey |
+| **Reddit** | Tech, gaming, finance, niche communities | Free API, mostly noise outside niches |
+| **App Store / Play Store** | D2C apps, fintech, edtech | Public data, robust |
 
-### V1 channels (Agency only)
+### Channel packs (default channel sets per category)
 
-| Channel | What's collected |
-|---------|-----------------|
-| **X (Twitter)** | Brand mentions, hashtag campaigns, influencer amplification |
+| Pack | Default channels |
+|---|---|
+| **B2B SaaS — enterprise** | LinkedIn, YouTube, G2/Capterra, News/PR, Google Search, Website, Email |
+| **B2B SaaS — PLG / consumer-flavored** | LinkedIn, YouTube, Reddit, Product Hunt, App Store, Google Search, Website, Email |
+| **D2C Ecom** | Instagram, Meta Ads, Amazon, Google Shopping, Google Search, Website, Email |
+| **FMCG** | Instagram, Meta Ads, YouTube, News/PR, Google Search, Website, Email |
+| **Fintech** | Google Search, LinkedIn, YouTube, App Store, News/PR, Website, Email |
+| **Agency (multi-brand)** | Inherits each managed brand's pack |
+
+Auto-categorization: an LLM classifies the brand's website at signup and assigns a pack. User can override during onboarding or in Settings → Channels.
+
+### Add-ons (post-revenue)
+
+- **X (Twitter)** — opt-in for B2B SaaS PLG and consumer-flavored packs once $1K MRR is achieved. Defaults off until budget supports either Apify scraping ($30/mo, fragile) or X API basic ($100/mo).
 
 ### V2 roadmap channels (not in V1)
 
-Flipkart, Reddit, Pinterest, Google Trends, website traffic proxy (SimilarWeb), Glassdoor (employer brand signal), G2 / Capterra (for SaaS).
+Quick commerce (Zepto / Blinkit / Instamart — high signal for FMCG India, no public APIs), Flipkart, Pinterest, Google Trends, website traffic proxy (SimilarWeb), Glassdoor (employer brand signal), AI recommendation tracking (ChatGPT / Perplexity / Gemini brand mentions), product/feature changelog detection.
 
 ---
 
@@ -1128,21 +1171,25 @@ No in-app chat or ticketing in V1. The Settings sidebar has no Help link. Users 
 
 ## 24. V1 scope boundary
 
-### In V1
+### In V1 (post-v1.2)
 
 - Weekly brief (Sunday 7am IST delivery)
 - Email brief + web brief view (`/brief/:id`, no auth)
-- Onboarding: 5 steps (brand, competitors, channels, recipients, done)
+- Onboarding: 5 steps (brand, competitors, channels, recipients, done) with channel-pack auto-categorization
 - Dashboard: pipeline status card, competitor snapshot table
 - All 6 settings pages (profile, team, channels, recipients, delivery, subscription)
-- Admin: brief list, brief editor, accounts list, brand lookup CRUD
+- Admin: brief list, brief editor, accounts list, brand lookup CRUD, **verifier-rejected signals queue (v1.2)**
 - 3 brief variants (full / channel_focus / executive_digest)
 - Trial: 14 days, 1 brief, baseline-only signals
 - Payments: Razorpay (India/INR) + Stripe (international/USD/EUR)
 - 5 signal types: threat / watch / opportunity / trend / silence
-- V1 channels: Instagram, Meta Ads Library, Amazon, News/PR, Google Ads Transparency (all plans)
-- Growth channels: LinkedIn, YouTube
-- Agency channel: X (Twitter)
+- **Quality layer model (v1.2): facts / patterns / implications. Predictions blocked at verifier**
+- **Tier 1 + Tier 2 channels with channel packs (v1.2)** — see §8
+- **Website channel** (homepage + pricing + blog + jobs) — default for every pack
+- **Synthesizer worker (v1.2)** — intra-week clustering, schema reserves cross-week extension
+- **Verifier worker (v1.2)** — per-claim reconciliation with hybrid retry-then-drop behavior
+- **Brief structure (v1.2): lead story (when verified cluster exists) + supporting + always-on activity catalog**
+- **Signal feedback + "Acted on this" instrumentation (v1.2)** — subtle controls in app brief; signed-URL links in email brief
 - Custom sending domain (Growth+)
 - Upgrade wall (`/upgrade`) with reason-specific messaging
 - UpgradeModal (inline, triggered at plan limits)
@@ -1155,14 +1202,22 @@ No in-app chat or ticketing in V1. The Settings sidebar has no Help link. Users 
 
 ### Explicitly out of V1
 
+- **X (Twitter)** — moved from Agency-only to PLG opt-in add-on, post-revenue ($1K MRR gate)
+- **Quick commerce tracking** — high signal but no public APIs; V2 pending scraper feasibility
+- **AI recommendation tracking** — ChatGPT / Perplexity / Gemini brand mention panels; V2
+- **Content-aware pipeline** — topic extraction, sentiment trending, recurring-complaint detection on reviews/forums; V2 (V1 tracks these channels at metrics-only level)
+- **Cross-week story arc clustering** — synthesizer V1 is intra-week only; schema reserves the extension
+- **Corroboration-weighted confidence scoring** — V2
+- **Category-aware threshold learning** — thresholds remain static in `category_config` for V1; V2 makes them adaptive
+- **Real competitor ad spend visibility** — V1 reports creative volume as a proxy. Real spend may become a paid enterprise opt-in in V2
+- **First-party (own-brand) data product** — competitor + own-data side-by-side product flagged for V3
 - **Triggered / real-time alerts** — placeholder visible in Settings → Delivery; non-functional
 - **Heatmap view** — competitive activity calendar; spec exists, not built
 - **CSV / data export** — Agency plan feature; not built
 - **Dark mode** — `color-scheme: light` forced globally; out of scope entirely
 - **Mobile app** — web only; email is mobile-responsive
 - **Competitor comparison view** — side-by-side brand comparison; V2
-- **Flipkart tracking** — shown in channel list for awareness; not collected
-- **Reddit / Pinterest** — V2
+- **Flipkart tracking** — V2
 - **Slack / Teams integration** — V2
 - **WhatsApp brief delivery** — V2
 - **AI chat over brief** — V2
@@ -1172,6 +1227,10 @@ No in-app chat or ticketing in V1. The Settings sidebar has no Help link. Users 
 - **In-app support chat** — V2
 - **Legal pages** (Privacy, ToS, Refund) — required before first paying customer; not yet built
 - **Self-serve re-subscribe** — recipients can only be re-added by account admins
+
+### Marketing-claim scope (v1.2)
+
+V1 marketing copy must be scoped to **competitor activity** — not competitor spend. Spend is inferred via creative volume ("they launched 14 new ads → likely scaling spend") and never reported as a measured number. Real spend visibility requires paid third-party data feeds and is reserved for a future enterprise tier.
 
 ---
 
@@ -1222,6 +1281,30 @@ No in-app chat or ticketing in V1. The Settings sidebar has no Help link. Users 
 
 These are confirmed directions, not firm commitments. Sequence driven by customer feedback after first 5 clients.
 
+### V2 — Cross-week story arc clustering
+
+Synthesizer V1 clusters intra-week only. V2 chains weekly clusters into multi-week story arcs (a campaign that plays out over 4 weeks becomes one continuous story across briefs). The `signal_clusters.parent_cluster_id` column is reserved in V1 schema for this purpose; no migration required.
+
+### V2 — Corroboration-weighted confidence scoring
+
+Signals corroborated across multiple channels get a confidence boost relative to single-channel signals. Surfaces in the brief as a confidence indicator on the lead story.
+
+### V2 — Category-aware threshold learning
+
+`category_config` thresholds become adaptive — learn from feedback and historical signal performance per category, instead of being hand-tuned. Reduces calibration overhead as channels and categories grow.
+
+### V2 — Content-aware pipeline for reviews / forums / communities
+
+Separate analysis pipeline alongside the metrics-delta differ for unstructured text channels. Topic extraction, sentiment trending, recurring-complaint detection. Replaces V1's count-only handling of reviews/forums.
+
+### V2 — AI recommendation tracking
+
+Daily prompt panels asking ChatGPT / Perplexity / Gemini "what's the best X" for the user's category, tracking which brands get recommended. Surfaces in the brief as a new signal type. Becomes increasingly valuable as AI-as-discovery becomes mainstream.
+
+### V2 — Quick commerce channel
+
+Zepto / Blinkit / Instamart sponsored placements and shelf real estate. High signal for FMCG India. Requires scraper feasibility study (no public APIs, mobile-app only, geofenced, anti-bot).
+
 ### V2 — Triggered alerts
 
 Push notification (email or WhatsApp) when a score 90+ signal is detected mid-week — competitor's major ad launch, rating collapse, funding news. Does not wait for Sunday.
@@ -1259,6 +1342,14 @@ Side-by-side comparison of two competitors across a custom date range. Built for
 ### V3 — Strategy recommendations
 
 Beyond signals and implications, generate a prioritised action list for the week based on the full signal set. Moves from "here's what happened" to "here's what to do."
+
+### V3 — First-party data integration ("you vs them")
+
+OAuth into the brand's own Meta Business Manager / GA4 / Search Console / LinkedIn Page Admin. Combine first-party performance with competitor activity into a single brief: *"You spent ₹8L on Meta this month. Britannia spent ~₹12L, got 2x the engagement, 40% lower CPM."* This is a defensible moat — almost nobody combines first-party OAuth data with third-party scraped competitor data well. Considered and rejected for V1 (V1 scope is competitor-only); flagged for V3 reconsideration as the differentiated combined product.
+
+### V3 — Real spend visibility (enterprise opt-in)
+
+Paid integration with SimilarWeb / SensorTower / Pathmatics for verified competitor spend numbers. Enterprise-tier feature with usage-based pricing.
 
 ### V3 — Referral programme
 

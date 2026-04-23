@@ -5,6 +5,22 @@ Format: `[version] YYYY-MM-DD — Description`
 
 ---
 
+## [0.1.36] 2026-04-23 — Intelligence layer V1 scope locked (planning, not yet built)
+
+### Added
+
+- **`docs/decisions/ADR-013-intelligence-layer-v1.md`** — Comprehensive ADR capturing the multi-day discussion that locked the V1 intelligence layer scope. Records the decisions (synthesizer worker, verifier worker, claim_type quality model, brief structure refresh, channel packs, signal feedback instrumentation, pipeline schedule shift), the alternatives considered and rejected (own-brand data pivot, "100% correct" as a goal, in-process synthesizer/verifier, public brief feedback buttons, X as default channel), the deferred items with reasoning (cross-week clustering, AI recommendation tracking, content-aware pipeline, quick commerce, real spend visibility, first-party data product), and the open questions for build-time decisions. Includes implementation sequencing.
+
+### Changed
+
+- **`docs/PRD.md` → v1.2** — Brief structure replaced (top-5 cards → lead story + supporting + always-on activity catalog). Channels reorganised into Tier 1 / Tier 2 with channel packs by category. Website added as default channel for every pack. X moved from Agency-only to PLG opt-in add-on (post-revenue). Pipeline schedule shifted: collector to Sat 8pm IST, two new stages (synthesizer, verifier) added, delivery preserved at Sun 7am IST. Quality layer model added (facts / patterns / implications / predictions blocked). Marketing-claim scope clarified: V1 reports competitor activity, not competitor spend. V2 and V3 roadmap expanded with cross-week clustering, AI recommendation tracking, content-aware pipeline, first-party data product, real spend visibility.
+
+### Why
+
+Existing V1 pipeline is per-channel parallel processing — adding the 8th channel produces 8× the signals at 1× the quality. The discussion converged on the principle: *the moat is the synthesis, not the scrapers.* This locks V1 scope before implementation begins; nothing in this changelog entry is built yet.
+
+---
+
 ## [0.1.35] 2026-04-19 — Test utility: seed previous week snapshots
 
 ### Added
