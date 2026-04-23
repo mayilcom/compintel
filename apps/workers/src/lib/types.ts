@@ -41,6 +41,8 @@ export type Channel =
   | 'meta_ads' | 'news' | 'reddit' | 'pinterest' | 'website'
   | 'google_search' | 'flipkart' | 'glassdoor' | 'g2' | 'twitter'
   | 'google_analytics' | 'google_search_console'
+  | 'app_store' | 'google_shopping' | 'email' | 'product_hunt'
+  | 'capterra' | 'trustpilot'
 
 export type CollectionStatus = 'pending' | 'success' | 'partial' | 'failed'
 
@@ -58,6 +60,19 @@ export interface Snapshot {
 
 export type SignalType = 'threat' | 'watch' | 'opportunity' | 'trend' | 'silence'
 
+// Quality layer (v1.2). Verifier uses this to apply different acceptance criteria.
+export type ClaimType = 'fact' | 'pattern' | 'implication' | 'prediction'
+
+// Verifier outcomes (v1.2).
+export type VerificationStatus = 'pending' | 'verified' | 'retried' | 'dropped'
+
+// Synthesizer cluster categories (v1.2).
+export type ClusterType =
+  | 'coordinated_campaign'  // 2+ signals on the same brand in the same week
+  | 'silence'               // explicit silence-type signal, stands alone
+  | 'trend'                 // 2+ trend-type signals grouped
+  | 'single_signal'         // pass-through for thin weeks / uncorrelated signals
+
 export interface Signal {
   signal_id: string
   account_id: string
@@ -74,6 +89,27 @@ export interface Signal {
   sources: string[]
   selected_for_brief: boolean
   source: 'ai' | 'rule_based' | 'manual'
+  // v1.2 intelligence layer fields
+  claim_type: ClaimType
+  cluster_id: string | null
+  verification_status: VerificationStatus
+  verification_reason: string | null
+  verification_attempts: number
+}
+
+// Synthesizer output (v1.2). One row per cluster per brand-week.
+export interface SignalCluster {
+  cluster_id: string
+  account_id: string
+  brand_id: string
+  week_start: string
+  parent_cluster_id: string | null   // reserved for V2 cross-week chaining
+  cluster_type: ClusterType
+  label: string | null
+  signal_ids: string[]
+  channels: string[]
+  score: number           // max score of member signals
+  is_lead_story: boolean  // true = this cluster is the brief's lead
 }
 
 export interface Brief {

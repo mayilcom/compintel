@@ -1,26 +1,29 @@
 # Data Pipeline
 
-**Last updated:** 2026-04-19  
+**Last updated:** 2026-04-23
 **Runtime:** Railway (Node.js workers)
 
 ---
 
-## Pipeline overview
+## Pipeline overview (v1.2 — 8 stages)
 
-The weekly brief is produced by 6 sequential workers that run every Saturday night / Sunday morning IST.
+The weekly brief is produced by 8 sequential workers that run every Saturday evening / Sunday morning IST.
 
 ```
-Collector → Differ → Signal Ranker → AI Interpreter → Brief Assembler → Delivery
+Collector → Differ → Signal Ranker → Synthesizer → AI Interpreter → Verifier → Brief Assembler → Delivery
+ Sat 8pm   Sat 11pm  Sun 12am        Sun 1am       Sun 2am          Sun 3am    Sun 4am           Sun 7am IST
 ```
 
 Each stage writes to Supabase and the next stage reads from it. Stages are idempotent — safe to re-run if a stage fails.
+
+v1.2 introduced two new stages — **Synthesizer** (clusters related signals into stories) and **Verifier** (reconciles every AI claim against source data). The collector moved from Sat 11pm IST to Sat 8pm IST to buy 11 hours of pipeline runway across the 8 stages while preserving the Sun 7am delivery promise. See [ADR-013](../decisions/ADR-013-intelligence-layer-v1.md).
 
 ---
 
 ## Stage 1 — Collector
 
-**Runs:** Saturday 11:00pm IST  
-**Trigger:** Railway cron `0 17 * * 6` (UTC)
+**Runs:** Saturday 8:00pm IST (moved from 11pm in v1.2)
+**Trigger:** Railway cron `30 14 * * 6` (UTC)
 
 ### What it does
 For each active account × competitor × enabled channel:
@@ -49,8 +52,8 @@ For each active account × competitor × enabled channel:
 
 ## Stage 2 — Differ
 
-**Runs:** Sunday 2:00am IST  
-**Trigger:** Railway cron `0 20 * * 6` (UTC)
+**Runs:** Saturday 11:00pm IST
+**Trigger:** Railway cron `30 17 * * 6` (UTC)
 
 ### What it does
 For each `snapshot` from Stage 1:
@@ -73,21 +76,22 @@ For each `snapshot` from Stage 1:
 
 ## Stage 3 — Signal Ranker
 
-**Runs:** Sunday 3:00am IST
+**Runs:** Sunday 12:00am IST
+**Trigger:** Railway cron `30 18 * * 6` (UTC)
 
 ### What it does
 1. Load `category_config` thresholds for the account's brand category
 2. For each delta, compare against thresholds
 3. Assign a signal type (`threat / watch / opportunity / trend / silence`) and score (1–100)
-4. Create preliminary `signal` rows with `headline = NULL` (to be filled by AI)
+4. Create preliminary `signal` rows with `source = 'rule_based'` (to be enriched by AI interpreter)
 
 ### Scoring logic
 
 | Score range | Meaning |
 |-------------|---------|
-| 80–100 | Lead signal for the brief (1–2 per brief) |
-| 50–79 | Supporting signal (3–5 per brief) |
-| 20–49 | Mention-worthy but not headline |
+| 80–100 | Lead signal candidate |
+| 50–79 | Supporting signal |
+| 20–49 | Catalog-worthy |
 | <20 | Filtered out |
 
 ### Silence signals
@@ -95,74 +99,122 @@ A competitor with zero posts for `silence_days_threshold` days (from category_co
 
 ---
 
-## Stage 4 — AI Interpreter
+## Stage 3.5 — Synthesizer *(new in v1.2)*
 
-**Runs:** Sunday 4:00am IST
+**Runs:** Sunday 1:00am IST
+**Trigger:** Railway cron `30 19 * * 6` (UTC)
 
 ### What it does
-For each signal (score ≥ 20):
-1. Build a structured prompt with:
-   - Signal type, channel, competitor name, delta metrics
-   - Account brand name, category, market
-   - Prior week's headline for context
-2. Call Claude claude-sonnet-4-5 with `response_format: JSON`
-3. Parse response into:
-   - `headline`: one punchy sentence
-   - `body`: 2–3 sentences of context
-   - `implication`: "What this means for you" (1–2 sentences)
-4. Update `signal` row with AI-generated copy
+Clusters related signals within the same brand-week into evidence-graphs so the brief can tell a coherent story instead of listing uncorrelated headlines.
 
-### Prompt structure
+1. Read all `rule_based` signals written by the Signal Ranker for this week.
+2. Group by `(account_id, brand_id)`.
+3. Apply clustering rules per group:
+   - `silence` signals → standalone `silence` cluster (silence is the story)
+   - 2+ `trend` signals → `trend` cluster
+   - 2+ non-silence signals on the same brand → `coordinated_campaign` cluster
+   - Anything else → `single_signal` cluster (pass-through)
+4. Per account, pick one lead story by priority:
+   - `coordinated_campaign` by score
+   - then `silence` (≥ 70)
+   - then `trend` (≥ 70)
+   - then `single_signal` only if ≥ 80
+   - If nothing qualifies: no lead story this week — brief ships with activity catalog only.
+5. Write `signal_clusters` rows; backfill `signals.cluster_id` so downstream stages know cluster membership.
 
-```
-You are a competitive intelligence analyst writing for a CMO in the {category} sector.
-
-Competitor: {competitor_name}
-Channel: {channel}
-Signal type: {type}
-Data: {delta_json}
-Client brand: {brand_name}
-Market: {market}
-
-Write:
-- headline: <one punchy sentence, max 12 words, no fluff>
-- body: <2-3 sentences explaining what happened and why it matters>
-- implication: <1-2 sentences — what should the client do or watch>
-
-Return JSON only.
-```
-
-### Fallback
-If Claude API fails: GPT-4o via OpenAI API with same prompt. If both fail: signal is marked `ai_failed = true`, brief assembler skips it and uses raw delta as plain text.
+Intra-week only in V1; the `parent_cluster_id` column is reserved for V2 cross-week story-arc chaining.
 
 ---
 
-## Stage 5 — Brief Assembler
+## Stage 4 — AI Interpreter
 
-**Runs:** Sunday 5:00am IST
+**Runs:** Sunday 2:00am IST
+**Trigger:** Railway cron `30 20 * * 6` (UTC)
 
 ### What it does
-1. Select top signals for the account (score-ordered, max 5 by default)
-2. Pick the lead signal as the brief `headline`
-3. Generate `summary` (2–3 sentences) and `closing_question` via Claude
-4. Set `is_baseline = true` for the account's first brief (no prior week data); use a fixed baseline closing question
-5. Upsert `brief` row with `status = 'assembled'`, `summary`, `closing_question`, `is_baseline`
-6. Render the brief as HTML (React Email template compiled to string)
-7. Store rendered HTML in `brief.html_content`
+For each rule-based signal (and any retried signal from the verifier), call Claude Sonnet to rewrite into publication-quality copy:
+
+1. Load the signal plus its cluster context (`signal_clusters` row) — cluster type, channels involved, sibling count.
+2. Build a structured prompt with competitor, client brand, signal type, channel, category, cluster context, and — on retries — the verifier's rejection reason.
+3. Call Claude `claude-sonnet-4-5` and parse `HEADLINE`, `BODY`, `IMPLICATION`, and `CLAIM_TYPE` (fact | pattern | implication).
+4. Update the `signals` row with AI copy, set `source = 'ai'`, reset `verification_status = 'pending'` for the verifier.
+
+### Hard rules (enforced in the system prompt AND by the verifier)
+- No predictions — no future-tense or hedge language (`will`, `likely`, `may`, `could`, `expected to`).
+- Every number in headline and body must trace back to a data point.
+- Implication must name the client brand by name.
+
+### Fallback
+If Claude fails: signal stays as `rule_based` copy. The verifier will accept it as-is so the brief still ships.
+
+---
+
+## Stage 5 — Verifier *(new in v1.2)*
+
+**Runs:** Sunday 3:00am IST
+**Trigger:** Railway cron `30 21 * * 6` (UTC)
+
+### What it does
+Per-claim reconciliation. Every signal produced by the AI interpreter is checked against its source data before reaching the brief.
+
+1. Load signals where `verification_status ∈ {pending, retried}` and `selected_for_brief = true`.
+2. For each signal:
+   - `claim_type = 'prediction'` → hard reject.
+   - Surface check: any future-tense / hedge language → hard reject.
+   - `claim_type = 'implication'` → auto-verify (interpretation by design).
+   - `claim_type ∈ {fact, pattern}` → call Claude Haiku as verifier (pass/fail + reason).
+3. Record outcome:
+   - `verified` → signal reaches brief-assembler.
+   - First fail → `retried` (signal is re-run through AI interpreter on its next pass, with the verifier's reason as context).
+   - Second fail → `dropped` (silently excluded from the brief; visible in admin queue for post-hoc review).
+
+### Model
+Claude Haiku 4.5 (`claude-haiku-4-5-20251001`). Small-model cost (~$0.001/signal); negligible at V1 volumes.
+
+### Fallback
+If the verifier API call itself fails: mark the signal `verified` with reason `"verifier skipped (API failure)"`. A verifier outage must not kill the weekly brief.
+
+---
+
+## Stage 6 — Brief Assembler
+
+**Runs:** Sunday 4:00am IST
+**Trigger:** Railway cron `30 22 * * 6` (UTC)
+
+### What it does
+1. For each active account, load verified signals (score ≥ 20) and the lead cluster (`signal_clusters.is_lead_story = true`).
+2. Split signals into lead-cluster members vs the activity catalog (everything else).
+3. Generate narrative (Claude):
+   - If a lead cluster exists → headline + summary + closing question anchored to the lead story.
+   - If no lead cluster → quiet-week summary, no manufactured narrative, no closing question.
+4. Render email HTML variants (per recipient).
+5. Upsert the `brief` row with `status = 'assembled'`, `lead_cluster_id`, and `activity_catalog`.
+
+### Brief structure
+
+```
+[Lead Story]            ← cluster with is_lead_story = true (some weeks)
+[Supporting Evidence]   ← other signals in the lead cluster
+[This Week's Activity]  ← verified signals NOT in the lead cluster (always present)
+[Closing Question]      ← only when a lead story exists
+```
+
+**Quiet weeks** (no lead cluster) ship with the activity catalog and no closing question. No manufactured stories.
 
 ### Brief variants
 
 | Variant | Signal count | Extras |
 |---------|-------------|--------|
-| `full` | All signals (up to 5) | Closing question |
+| `full` | Lead cluster + supporting + catalog | Closing question (if lead exists) |
 | `channel_focus` | Top 3 signals, channel-grouped | No closing question |
 | `executive_digest` | Top 1–2 signals only | 3-line summary only |
 
 ---
 
-## Stage 6 — Delivery
+## Stage 7 — Delivery
 
 **Runs:** Sunday 7:00am IST
+**Trigger:** Railway cron `30 1 * * 0` (UTC)
 
 ### What it does
 1. Load all `recipients` for the account where `active = true`
@@ -182,12 +234,14 @@ If Claude API fails: GPT-4o via OpenAI API with same prompt. If both fail: signa
 ## Re-running a stage
 
 Each stage checks `week_start = current_week()` before inserting. Duplicate runs are safe:
-- Collector: `INSERT ... ON CONFLICT (competitor_id, channel, week_start) DO UPDATE`
-- Differ: idempotent delta computation
-- Signal Ranker: deletes and re-creates signals for the week on re-run
-- AI Interpreter: skips signals that already have `headline IS NOT NULL`
-- Brief Assembler: upserts brief row
-- Delivery: checks `sent_at IS NULL` before sending (no double-send)
+- **Collector:** `INSERT ... ON CONFLICT (competitor_id, channel, week_start) DO UPDATE`
+- **Differ:** idempotent delta computation
+- **Signal Ranker:** upserts on `(account_id, brand_id, week_start, channel)`
+- **Synthesizer:** re-running produces duplicate `signal_clusters` rows — truncate the week's clusters first if re-running mid-cycle. Backfill of `signals.cluster_id` is idempotent.
+- **AI Interpreter:** picks up `source = 'rule_based'` and `verification_status = 'retried'` signals; safe to re-run
+- **Verifier:** picks up `verification_status ∈ {pending, retried}`; safe to re-run
+- **Brief Assembler:** upserts brief row
+- **Delivery:** checks `sent_at IS NULL` before sending (no double-send)
 
 ---
 
@@ -206,9 +260,19 @@ npx tsx src/scripts/seed-prev-week.ts
 
 `seed-prev-week.ts` reads this week's successful snapshots, duplicates them with `week_start` set to 7 days earlier, and fuzzes numeric metrics by ±15–40% to generate realistic deltas. Safe to re-run (upserts on conflict).
 
-**Step 2 — Trigger each Railway service manually in sequence**
+**Step 2 — Trigger each Railway service manually in sequence (v1.2 order)**
 
-In the Railway dashboard, open each service and click **"Run now"**:
+In the Railway dashboard, open each service and click **"Run now"**, waiting for each to finish before starting the next:
+
+1. `differ`
+2. `signal-ranker`
+3. `synthesizer`
+4. `ai-interpreter`
+5. `verifier`
+6. `assembler`
+7. `delivery`
+
+Legacy step list (for reference only):
 
 1. `differ` — waits ~2 min
 2. `signal-ranker` — waits ~1 min

@@ -1,23 +1,30 @@
 # Railway deployment configuration for Mayil workers
 # Repo root for this service: apps/workers/
 #
-# Create 6 Railway cron services from this directory, each with a different
-# WORKER_NAME env var and cron schedule (all times UTC):
+# Create 9 Railway cron services from this directory, each with a different
+# WORKER_NAME env var and cron schedule (all times UTC).
+#
+# v1.2 pipeline (8 weekly stages + enrichment daily). Collector moved from
+# Sat 11pm IST to Sat 8pm IST to make room for synthesizer + verifier
+# while preserving Sun 7am IST delivery. See docs/architecture/data-pipeline.md
+# and docs/decisions/ADR-013-intelligence-layer-v1.md.
 #
 #   Service name     | WORKER_NAME     | Cron (UTC)   | IST equivalent
 #   -----------------|-----------------|--------------|----------------
-#   collector        | collector       | 30 17 * * 6  | Sat 11:00pm
-#   differ           | differ          | 30 20 * * 6  | Sun 2:00am
-#   signal-ranker    | signal-ranker   | 30 21 * * 6  | Sun 3:00am
-#   ai-interpreter   | ai-interpreter  | 30 22 * * 6  | Sun 4:00am
-#   assembler        | assembler       | 30 23 * * 6  | Sun 5:00am
+#   collector        | collector       | 30 14 * * 6  | Sat 8:00pm
+#   differ           | differ          | 30 17 * * 6  | Sat 11:00pm
+#   signal-ranker    | signal-ranker   | 30 18 * * 6  | Sun 12:00am
+#   synthesizer      | synthesizer     | 30 19 * * 6  | Sun 1:00am
+#   ai-interpreter   | ai-interpreter  | 30 20 * * 6  | Sun 2:00am
+#   verifier         | verifier        | 30 21 * * 6  | Sun 3:00am
+#   assembler        | assembler       | 30 22 * * 6  | Sun 4:00am
 #   delivery         | delivery        | 30 1  * * 0  | Sun 7:00am
 #   enrichment       | enrichment      | 30 2  * * *  | Daily 8:00am
 #
 # Required env vars per service (set in Railway dashboard):
 #   SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 #   APIFY_API_TOKEN       (collector only)
-#   ANTHROPIC_API_KEY     (ai-interpreter, assembler)
+#   ANTHROPIC_API_KEY     (ai-interpreter, verifier, assembler)
 #   RESEND_API_KEY        (assembler, delivery)
 #   NEXT_PUBLIC_APP_URL   (assembler, delivery)
 #   NINJAPEAR_API_KEY     (enrichment only)

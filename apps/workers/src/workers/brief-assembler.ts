@@ -1,16 +1,30 @@
 /**
- * brief-assembler.ts — Stage 5 of 6
+ * brief-assembler.ts — Stage 6 of 8 (v1.2)
  *
- * Schedule: Sunday 5am IST (cron: 30 23 * * 6 UTC)
+ * Schedule: Sunday 4am IST (cron: 30 22 * * 6 UTC)
+ * Position: between verifier (stage 5) and delivery (stage 7)
  *
- * For each active account, selects the top signals for the week,
- * picks a brief headline + closing question (via Claude), renders
- * the three email HTML variants, and writes the assembled brief
- * to the briefs table with status = 'assembled'.
+ * For each active account, reads VERIFIED signals and the lead cluster
+ * for the week, structures the brief as:
  *
- * Brief #1 for any account is a baseline brief — no delta signals
- * yet (only 1 week of data). Uses watch/trend signals only and
- * replaces the closing question with an orientation prompt.
+ *   [Lead Story]           — the cluster with is_lead_story = true
+ *   [Supporting Evidence]  — signals in the lead cluster (other than the top)
+ *   [This Week's Activity] — verified signals NOT in the lead cluster, as a compact catalog
+ *   [Closing Question]     — only when a lead story exists
+ *
+ * On quiet weeks (no lead cluster), the brief ships with just the
+ * activity catalog — no manufactured narrative. Honest quiet weeks
+ * are a V1.2 principle (see ADR-013).
+ *
+ * Brief #1 for any account is still treated as a baseline brief
+ * (is_baseline = true) — no delta language in the narrative.
+ *
+ * Email template redesign for the new structure is a separate
+ * implementation step; V1.2 assembler populates the DB columns
+ * (lead_cluster_id + activity_catalog) but continues to render the
+ * existing BriefFull / BriefChannelFocus / BriefExecutiveDigest
+ * templates for email. Web brief view (/brief/:id) will render the
+ * new structure once the template PR lands.
  */
 
 import Anthropic from '@anthropic-ai/sdk'
@@ -133,21 +147,57 @@ async function run() {
     const accountId = account.account_id as string
 
     try {
-      // Load signals for this account, ordered by score desc
-      const { data: signals, error: sigErr } = await db
+      // Load VERIFIED signals for this account (v1.2). Legacy briefs
+      // before v1.2 may have verification_status = 'pending' — include
+      // those by accepting 'verified' OR 'pending' (for backfilled rows).
+      const { data: allSignals, error: sigErr } = await db
         .from('signals')
         .select('*, brands(brand_name)')
         .eq('account_id', accountId)
         .eq('week_start', weekStart)
         .eq('selected_for_brief', true)
         .gte('score', 20)
+        .in('verification_status', ['verified', 'pending'])
         .order('score', { ascending: false })
-        .limit(5)
 
       if (sigErr) throw sigErr
-      if (!signals || signals.length === 0) {
+      const signals = (allSignals ?? []) as Array<Record<string, unknown>>
+
+      // Fetch the lead cluster for this account-week (at most one).
+      const { data: leadRows } = await db
+        .from('signal_clusters')
+        .select('cluster_id, label, cluster_type, signal_ids, channels, score')
+        .eq('account_id', accountId)
+        .eq('week_start', weekStart)
+        .eq('is_lead_story', true)
+        .limit(1)
+      const leadCluster = (leadRows ?? [])[0] as
+        | { cluster_id: string; label: string | null; cluster_type: string;
+            signal_ids: string[]; channels: string[]; score: number }
+        | undefined
+
+      // Split signals into lead-cluster members vs activity catalog.
+      const leadSignalIds = new Set(leadCluster?.signal_ids ?? [])
+      const leadSignals    = signals.filter(s => leadSignalIds.has(s.signal_id as string))
+      const catalogSignals = signals.filter(s => !leadSignalIds.has(s.signal_id as string))
+
+      // Activity catalog: compact, no interpretation. Always present.
+      const activityCatalog = catalogSignals.map(s => ({
+        signal_id:       s.signal_id,
+        channel:         s.channel,
+        competitor_name: (s.brands as { brand_name: string } | null)?.brand_name ?? '',
+        fact:            s.headline,
+      }))
+
+      // Quiet week: no lead cluster AND too few signals to justify a brief.
+      if (!leadCluster && signals.length === 0) {
         log.warn('no signals for account — skipping brief', { account_id: accountId })
         continue
+      }
+      if (!leadCluster) {
+        log.info('quiet week — no lead story, activity catalog only', {
+          account_id: accountId, catalog_count: activityCatalog.length,
+        })
       }
 
       // Client brand
@@ -177,14 +227,35 @@ async function run() {
 
       const issueNumber = (totalBriefs ?? 0) + 1
 
-      const emailSignals: SignalData[] = (signals as Array<Record<string, unknown>>).map(s =>
+      // Email signals: lead cluster members first (that IS the story),
+      // then catalog items. Email template consumes the full list until
+      // the template redesign lands; web view uses activity_catalog directly.
+      const primarySignals = leadCluster ? leadSignals : signals
+      const emailSignals: SignalData[] = primarySignals.map(s =>
         toEmailSignal(s, (s.brands as { brand_name: string })?.brand_name ?? '')
       )
 
-      // Generate narrative
-      const { headline, summary, closingQuestion } = await generateBriefNarrative(
-        emailSignals, clientBrand, isBaseline
-      )
+      // Generate narrative. If a lead cluster exists, anchor the headline
+      // to the cluster label; otherwise ship a quiet-week summary with no
+      // closing question (honest quiet week — see ADR-013).
+      const narrativeInput: SignalData[] = emailSignals.length > 0
+        ? emailSignals
+        : activityCatalog.slice(0, 3).map(c => ({
+            signal_type: 'trend' as const,
+            channel: c.channel as string,
+            competitor_name: c.competitor_name,
+            headline: c.fact as string,
+            body: '',
+            implication: '',
+          }))
+
+      const { headline, summary, closingQuestion } = leadCluster
+        ? await generateBriefNarrative(narrativeInput, clientBrand, isBaseline)
+        : {
+            headline: `This week's activity — ${activityCatalog.length} surface movement${activityCatalog.length !== 1 ? 's' : ''} tracked`,
+            summary:  `No coordinated story surfaced this week. The catalog below lists verified competitor activity across your tracked channels.`,
+            closingQuestion: '',
+          }
 
       // Subject line
       const topSignal = signals[0] as Record<string, unknown>
@@ -269,7 +340,7 @@ async function run() {
         summary,
         closing_question:    effectiveClosingQuestion,
         is_baseline:         isBaseline,
-        signal_ids:          (signals as Array<Record<string, unknown>>).map(s => s.signal_id),
+        signal_ids:          signals.map(s => s.signal_id as string),
         html_content:        fullHtml,
         subject_line:        subjectLine,
         preview_text:        previewText,
@@ -277,10 +348,21 @@ async function run() {
         status:              'assembled',
         preview_available_at: new Date().toISOString(),
         variant_html:        Object.fromEntries(variantHtmlMap),
+        // v1.2 intelligence layer fields
+        lead_cluster_id:     leadCluster?.cluster_id ?? null,
+        activity_catalog:    activityCatalog,
       }, { onConflict: 'account_id,week_start' })
 
       if (briefErr) throw briefErr
-      log.info('brief assembled', { account_id: accountId, issue: issueNumber, signals: signals.length, is_baseline: isBaseline })
+      log.info('brief assembled', {
+        account_id:   accountId,
+        issue:        issueNumber,
+        signals:      signals.length,
+        lead_story:   !!leadCluster,
+        cluster_type: leadCluster?.cluster_type ?? 'quiet_week',
+        catalog_size: activityCatalog.length,
+        is_baseline:  isBaseline,
+      })
 
     } catch (err) {
       log.error('assembly failed', { account_id: accountId, error: String(err) })

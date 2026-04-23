@@ -5,6 +5,40 @@ Format: `[version] YYYY-MM-DD — Description`
 
 ---
 
+## [0.1.37] 2026-04-24 — Intelligence layer V1 — synthesizer, verifier, migration 009
+
+Implementation of the scope locked in ADR-013 / PRD v1.2. Backend + database complete; UI (feedback controls, signed-URL landing page, admin verifier queue) is the next commit.
+
+### Added
+
+- **`supabase/migrations/009_intelligence_layer.sql`** — `channel_packs` table (6 default packs seeded: `b2b_saas_enterprise`, `b2b_saas_plg`, `d2c_ecom`, `fmcg`, `fintech`, `agency`) with `accounts.channel_pack_key` FK. `signal_clusters` table (intra-week clustering, `parent_cluster_id` reserved null for V2 cross-week). New columns on `signals`: `claim_type` enum (`fact` / `pattern` / `implication` / `prediction`), `cluster_id` FK, `verification_status` / `verification_reason` / `verification_attempt_count`. `signal_feedback` and `signal_actions` tables for CMO instrumentation. `briefs.lead_cluster_id` + `briefs.activity_catalog` (JSONB) for the new brief structure. Extended `snapshots` channel check to add `app_store`, `google_shopping`, `email`, `twitter`, `product_hunt`, `capterra`, `trustpilot`, `website`.
+
+- **`apps/workers/src/workers/synthesizer.ts`** — New pipeline stage between `signal-ranker` and `ai-interpreter`. Rule-based intra-week clustering: signals sharing the same `brand_id` + `competitor_id` + `week_start` within correlated channels are grouped into one cluster. Sub-2-signal weeks pass through as trivial clusters (one signal → one cluster). Writes to `signal_clusters` + back-fills `signals.cluster_id`. Noise/incoherence classifier flags brand-weeks with high signal count but low cluster density.
+
+- **`apps/workers/src/workers/verifier.ts`** — New pipeline stage between `ai-interpreter` and `brief-assembler`. Per-claim verification via small-model LLM (Claude Haiku) checks fact/pattern claims against source deltas. Hybrid rejection: one retry with verifier's reason as context, then silent drop + log to admin queue. Prediction blocker enforced by regex on future-tense markers (`will`, `likely`, `may`, `could`, `expected to`) before LLM call — structural pre-filter.
+
+### Changed
+
+- **`apps/workers/src/lib/types.ts`** — Added `ClaimType`, `VerificationStatus`, `SignalCluster`, `ChannelPack` types plus extended `Signal` with verification + cluster columns.
+- **`apps/workers/src/workers/ai-interpreter.ts`** — Emits `claim_type` per generated claim. Works on clusters, not individual signals. Prompt updated to forbid predictions explicitly and to label implications as interpretation.
+- **`apps/workers/src/workers/brief-assembler.ts`** — Renders new structure: lead story (from top-confidence verified cluster) + supporting evidence + always-on activity catalog. Omits closing question on quiet weeks (no lead story). Reads `signal_clusters` and `signals.cluster_id` for grouping.
+- **`apps/workers/railway.toml`** — Documents 2 new services (`synthesizer`, `verifier`) and the pipeline schedule shift: collector moves from `30 17 * * 6` to `30 14 * * 6` UTC (Sat 8pm IST), eight-stage cadence with 1-hour gaps, delivery preserved at Sun 7am IST.
+- **`apps/workers/package.json`** — Added `"synthesizer"` and `"verifier"` npm scripts.
+- **`docs/architecture/data-pipeline.md`** — Rewrote pipeline overview for 8 stages. Added synthesizer and verifier stage sections. Updated stage-by-stage schedule. Added quality layer table. Kept "accelerated testing" section.
+- **`docs/architecture/database-schema.md`** — Documented `channel_packs`, `signal_clusters`, `signal_feedback`, `signal_actions` tables and new columns on `signals`, `accounts`, `briefs`.
+
+### Not yet in this commit
+
+- UI: signal feedback icons on app brief page, "Acted on this" pill, signed-URL landing page for email feedback links, admin verifier-rejected queue. Ships in the next commit.
+- Channel-pack auto-categorization at onboarding (the table + FK are in place; the classifier isn't wired yet).
+- Railway services for `synthesizer` and `verifier` are configured in `railway.toml` but not yet created in the dashboard.
+
+### Why
+
+Locked scope per ADR-013: *the moat is the synthesis, not the scrapers.* This commit makes the backend honest about that claim — the pipeline can now cluster, verify, and present honestly-quiet weeks.
+
+---
+
 ## [0.1.36] 2026-04-23 — Intelligence layer V1 scope locked (planning, not yet built)
 
 ### Added
