@@ -44,11 +44,14 @@ const { items } = await apifyClient.dataset(run.defaultDatasetId).listItems()
 
 ## Claude API (Anthropic)
 
-**Purpose:** Signal interpretation — converting raw deltas into natural language signals with strategic implications  
-**Model:** `claude-sonnet-4-5`  
-**Billing:** ~$3/MTok input, $15/MTok output. Estimate: ~$5–20/month at 50 accounts.
+Two models are in use — Sonnet for the weekly pipeline, Haiku for real-time web app calls.
 
-### Usage pattern
+### Sonnet — signal interpretation (Railway worker)
+
+**Purpose:** Converting raw channel deltas into natural language signals with strategic implications  
+**Model:** `claude-sonnet-4-5`  
+**Where:** `apps/workers/src/workers/synthesizer.ts`  
+**Billing:** ~$3/MTok input, $15/MTok output. Estimate: ~$5–20/month at 50 accounts.
 
 ```ts
 const response = await anthropic.messages.create({
@@ -58,8 +61,24 @@ const response = await anthropic.messages.create({
 })
 ```
 
-### Fallback
-If Claude API fails (rate limit, outage), retry once after 10s. On second failure, switch to GPT-4o via OpenAI API with identical prompt. If both fail, mark signal `ai_failed = true` and use raw delta text as body.
+**Fallback:** Retry once after 10s. On second failure, switch to GPT-4o via OpenAI API with identical prompt. If both fail, mark signal `ai_failed = true` and use raw delta text as body.
+
+### Haiku — channel handle enrichment (Vercel web app)
+
+**Purpose:** Suggesting Instagram handles, Facebook pages, YouTube channels, LinkedIn slugs, Google Ads domain, and Amazon ASINs for competitor brands in Settings  
+**Model:** `claude-haiku-4-5-20251001`  
+**Where:** `src/app/api/settings/brands/enrich/route.ts`  
+**Billing:** Much cheaper than Sonnet (~$0.25/MTok input). Called on-demand per user click, not in batch.
+
+```ts
+const response = await anthropic.messages.create({
+  model: 'claude-haiku-4-5-20251001',
+  max_tokens: 300,
+  messages: [{ role: 'user', content: enrichPrompt }],
+})
+```
+
+**Required env var:** `ANTHROPIC_API_KEY` — set in both Railway (workers) and Vercel (web app).
 
 ---
 

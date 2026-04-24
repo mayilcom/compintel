@@ -5,6 +5,38 @@ Format: `[version] YYYY-MM-DD — Description`
 
 ---
 
+## [0.1.43] 2026-04-24 — Fix: collector error logging + Instagram test script
+
+### Fixed
+
+- **`apps/workers/src/workers/collector.ts`** — All three catch blocks (Apify channel collection, GA4, GSC) now extract the error message properly. The Apify client throws plain objects rather than `Error` instances, so `String(err)` was logging `[object Object]`. Fixed with: `err instanceof Error ? err.message : (has .message property) ? String(err.message) : JSON.stringify(err)`. Future errors will show the actual Apify error message (e.g. `Actor not found`, `Input is not valid`).
+
+### Added
+
+- **`apps/workers/src/scripts/test-instagram.ts`** — Dev tool to test an Instagram handle without consuming Apify credits. HTTP-only mode (default) checks if the profile URL is publicly reachable and parses any schema.org JSON from the page. `--apify` flag runs the full actor with `resultsLimit: 1` (~1/12 the credit cost of a normal run) to verify actor input/output shape. Usage: `npm run test-instagram -- cycle.in_` or `npm run test-instagram -- cycle.in_ --apify`.
+
+---
+
+## [0.1.42] 2026-04-24 — AI enrichment: "Suggest with AI" for competitor channel handles
+
+Claude Haiku can now suggest Instagram handles, Facebook pages, YouTube channels, LinkedIn slugs, Google Ads domain, and Amazon ASINs for any competitor brand with one click in Settings → Brands & Competitors.
+
+### Added
+
+- **`src/app/api/settings/brands/enrich/route.ts`** — `POST /api/settings/brands/enrich`. Authenticated route that calls `claude-haiku-4-5-20251001` with brand name, optional category, and optional known domain. Returns `EnrichResult` JSON with suggested values for all channel handles. Strips markdown code-block wrappers from the model response before parsing. Returns 502 if the model response is unparseable.
+- **`src/app/app/settings/competitors/page.tsx`**
+  - `ChannelEditor` — new optional `suggestions` prop. When provided, pre-fills `handles` state and `domain` state from the suggestion map and shows a gold banner: "AI suggested — verify each field before saving." Also expands `selectedPlatforms` to include any platform that has a suggestion.
+  - Each competitor card now has a "Suggest with AI" button (left of "Edit"). Clicking it calls the enrich endpoint, stores the result in `suggestions` state keyed by `brand_id`, and opens `ChannelEditor` pre-filled with the suggestions. Shows "Suggesting…" with disabled state while the API call is in progress.
+  - `EnrichResult` interface defined on the client side for type safety.
+  - Suggestions are cleared from state when the editor is saved or cancelled.
+  - `enrichError` state with error message display below the competitors list.
+
+### Why
+
+Configuring ASINs, Google Ads domains, and social handles for each competitor manually is friction that causes data gaps in the collector. Haiku has reliable recall for well-known Indian brands (Britannia, Parle, etc.) and can pre-fill all fields in one step — the user just verifies and saves.
+
+---
+
 ## [0.1.41] 2026-04-24 — Settings: full channel data collection for all worker inputs
 
 Closes the data-collection gap between what the collector workers need and what the UI lets users configure. Every field the workers read from `brands.channels` can now be entered and saved through Settings → Brands & Competitors.

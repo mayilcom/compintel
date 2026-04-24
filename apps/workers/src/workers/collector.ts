@@ -207,10 +207,15 @@ async function run() {
           snapshots++
         } catch (err) {
           failures++
+          const errMsg = err instanceof Error
+            ? err.message
+            : (typeof err === 'object' && err !== null && 'message' in (err as object))
+              ? String((err as Record<string, unknown>).message)
+              : JSON.stringify(err)
           log.error('collection failed', {
             brand: brand.brand_name,
             channel,
-            error: String(err),
+            error: errMsg,
           })
 
           // Record the failure so differ can skip this snapshot
@@ -286,7 +291,7 @@ async function run() {
         snapshots++
       } catch (err) {
         failures++
-        log.error('ga4 collection failed', { account_id: account.account_id, error: String(err) })
+        log.error('ga4 collection failed', { account_id: account.account_id, error: err instanceof Error ? err.message : JSON.stringify(err) })
         await db.from('snapshots').upsert({
           brand_id: clientBrand.brand_id,
           week_start: weekStart,
@@ -316,7 +321,7 @@ async function run() {
         snapshots++
       } catch (err) {
         failures++
-        log.error('gsc collection failed', { account_id: account.account_id, error: String(err) })
+        log.error('gsc collection failed', { account_id: account.account_id, error: err instanceof Error ? err.message : JSON.stringify(err) })
         await db.from('snapshots').upsert({
           brand_id: clientBrand.brand_id,
           week_start: weekStart,

@@ -13,7 +13,8 @@
     "delivery":       "tsx src/workers/delivery.ts",
     "enrichment":     "tsx src/workers/enrichment.ts",
     "typecheck":      "tsc --noEmit",
-    "seed":           "tsx src/scripts/seed-prev-week.ts"
+    "seed":           "tsx src/scripts/seed-prev-week.ts",
+    "test-instagram": "tsx src/scripts/test-instagram.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.40.0",

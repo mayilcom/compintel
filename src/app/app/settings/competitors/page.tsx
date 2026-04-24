@@ -14,18 +14,27 @@ function ChannelEditor({
   brand,
   onSave,
   onCancel,
+  suggestions,
 }: {
   brand: Brand
   onSave: (selectedPlatforms: string[], handles: Record<string, string>, domain: string | null) => Promise<void>
   onCancel: () => void
+  suggestions?: Record<string, string> & { domain?: string }
 }) {
   const initial = parseChannels(brand.channels)
-  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(
-    PLATFORMS.filter(p => initial[p.id] !== undefined).map(p => p.id)
-  )
-  const [handles, setHandles] = useState<Record<string, string>>(initial)
-  const [domain, setDomain] = useState(brand.domain ?? '')
+
+  // If suggestions provided, pre-fill with them; otherwise use existing values
+  const initHandles  = suggestions ? { ...initial, ...Object.fromEntries(Object.entries(suggestions).filter(([k]) => k !== 'domain')) } : initial
+  const initDomain   = suggestions?.domain ?? brand.domain ?? ''
+  const initSelected = PLATFORMS
+    .filter(p => initHandles[p.id] !== undefined || initial[p.id] !== undefined)
+    .map(p => p.id)
+
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(initSelected)
+  const [handles, setHandles] = useState<Record<string, string>>(initHandles)
+  const [domain, setDomain] = useState(initDomain)
   const [saving, setSaving] = useState(false)
+  const isSuggested = !!suggestions
 
   function togglePlatform(id: string) {
     setSelectedPlatforms(prev =>
@@ -41,6 +50,12 @@ function ChannelEditor({
 
   return (
     <div className="mt-3 flex flex-col gap-3 border-t border-border pt-3">
+      {isSuggested && (
+        <div className="rounded-[8px] border border-gold/40 bg-gold-bg px-3 py-2 text-[11px] text-gold-dark">
+          AI suggested — verify each field before saving.
+        </div>
+      )}
+
       {/* Domain */}
       <div className="flex flex-col gap-1.5">
         <label className="text-[11px] text-muted font-medium">Website domain</label>
@@ -118,11 +133,24 @@ function ChannelSummary({ channels }: { channels: Brand['channels'] }) {
   return <span className="text-[11px] text-muted">{parts.join(' · ')}</span>
 }
 
+interface EnrichResult {
+  domain?:       string | null
+  instagram?:    string | null
+  facebook?:     string | null
+  youtube?:      string | null
+  linkedin?:     string | null
+  google_search?: string | null
+  amazon?:       string | null
+}
+
 export default function CompetitorsSettingsPage() {
   const [brands, setBrands]           = useState<Brand[]>([])
   const [isLoading, setIsLoading]     = useState(true)
   const [editingId, setEditingId]     = useState<string | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [suggestingId, setSuggestingId] = useState<string | null>(null)
+  const [suggestions, setSuggestions]   = useState<Record<string, Record<string, string> & { domain?: string }>>({})
+  const [enrichError, setEnrichError]   = useState<string | null>(null)
 
   // Add competitor form state
   const [showAdd, setShowAdd]                  = useState(false)
@@ -170,6 +198,43 @@ export default function CompetitorsSettingsPage() {
     } else {
       const body = await res.json().catch(() => ({})) as { error?: string }
       setDeleteError(body.error ?? 'Failed to remove competitor')
+    }
+  }
+
+  async function handleEnrich(comp: Brand) {
+    setSuggestingId(comp.brand_id)
+    setEnrichError(null)
+    try {
+      const res = await fetch('/api/settings/brands/enrich', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          brand_name: comp.brand_name,
+          domain:     comp.domain ?? null,
+          category:   null,
+        }),
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({})) as { error?: string }
+        setEnrichError(body.error ?? 'Enrichment failed')
+        return
+      }
+      const data = await res.json() as EnrichResult
+      // Convert EnrichResult to the handle map expected by ChannelEditor
+      const handleMap: Record<string, string> & { domain?: string } = {}
+      if (data.domain)        handleMap.domain        = data.domain
+      if (data.instagram)     handleMap.instagram     = data.instagram
+      if (data.facebook)      handleMap.facebook      = data.facebook
+      if (data.youtube)       handleMap.youtube       = data.youtube
+      if (data.linkedin)      handleMap.linkedin      = data.linkedin
+      if (data.google_search) handleMap.google_search = data.google_search
+      if (data.amazon)        handleMap.amazon        = data.amazon
+      setSuggestions(prev => ({ ...prev, [comp.brand_id]: handleMap }))
+      setEditingId(comp.brand_id)
+    } catch {
+      setEnrichError('Enrichment request failed')
+    } finally {
+      setSuggestingId(null)
     }
   }
 
@@ -393,7 +458,18 @@ export default function CompetitorsSettingsPage() {
                   <div className="flex items-center gap-3 shrink-0">
                     <button
                       type="button"
-                      onClick={() => setEditingId(editingId === comp.brand_id ? null : comp.brand_id)}
+                      onClick={() => handleEnrich(comp)}
+                      disabled={suggestingId === comp.brand_id}
+                      className="text-[11px] text-muted hover:text-gold-dark transition-colors disabled:opacity-50"
+                    >
+                      {suggestingId === comp.brand_id ? 'Suggesting…' : 'Suggest with AI'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSuggestions(prev => { const n = { ...prev }; delete n[comp.brand_id]; return n })
+                        setEditingId(editingId === comp.brand_id ? null : comp.brand_id)
+                      }}
                       className="text-[11px] text-gold hover:text-gold-dark transition-colors"
                     >
                       {editingId === comp.brand_id ? 'Cancel' : 'Edit'}
@@ -411,8 +487,15 @@ export default function CompetitorsSettingsPage() {
                 {editingId === comp.brand_id && (
                   <ChannelEditor
                     brand={comp}
-                    onSave={(sp, h, d) => handleSaveChannels(comp.brand_id, sp, h, d)}
-                    onCancel={() => setEditingId(null)}
+                    onSave={(sp, h, d) => {
+                      setSuggestions(prev => { const n = { ...prev }; delete n[comp.brand_id]; return n })
+                      return handleSaveChannels(comp.brand_id, sp, h, d)
+                    }}
+                    onCancel={() => {
+                      setSuggestions(prev => { const n = { ...prev }; delete n[comp.brand_id]; return n })
+                      setEditingId(null)
+                    }}
+                    suggestions={suggestions[comp.brand_id]}
                   />
                 )}
               </CardContent>
@@ -420,7 +503,8 @@ export default function CompetitorsSettingsPage() {
           ))
         )}
 
-        {deleteError && <p className="text-[12px] text-threat">{deleteError}</p>}
+        {deleteError  && <p className="text-[12px] text-threat">{deleteError}</p>}
+        {enrichError  && <p className="text-[12px] text-threat">{enrichError}</p>}
       </div>
     </div>
   )
