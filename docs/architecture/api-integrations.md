@@ -1,29 +1,34 @@
 # API Integrations
 
-**Last updated:** 2026-04-15
+**Last updated:** 2026-04-24
 
 ---
 
 ## Apify
 
-**Purpose:** Managed web scraping for Instagram, Amazon, Google Ads, LinkedIn, YouTube  
+**Purpose:** Managed web scraping for Instagram, Meta Ads, Amazon, Google Ads, News, LinkedIn, YouTube  
 **Billing:** Pay-per-compute-unit. Estimate: ~$15–30/month at 50 accounts.
 
 ### Actors used
 
-| Actor | Channel | Notes |
-|-------|---------|-------|
-| `apify/instagram-scraper` | Instagram | Profile stats, recent posts, story count proxy |
-| `apify/amazon-product-scraper` | Amazon | ASIN-based; returns rating, review count, price |
-| `apify/google-ads-transparency` | google_search | Public transparency center scrape. Channel key is `google_search`. |
-| `apify/linkedin-company-scraper` | LinkedIn | Growth+ only; post frequency, follower count |
+| Actor | Channel | Input | Notes |
+|-------|---------|-------|-------|
+| `apify/instagram-scraper` | `instagram` | `directUrls`, `resultsLimit`, `resultsType` | Profile stats + recent posts. Official Apify actor. |
+| `apify/facebook-ads-scraper` | `meta_ads` | `startUrls` (Ads Library URL or FB page URL), `resultsLimit`, `activeStatus` | Facebook Ads Library. Official Apify actor. Falls back to keyword search URL if no page handle configured. |
+| `junglee/amazon-reviews-scraper` | `amazon` | `productUrls: [{url: 'https://www.amazon.in/dp/{ASIN}'}]`, `maxReviews` | Requires ASINs stored in `brands.channels.amazon.asin[]`. Community actor. |
+| `automation-lab/google-news-scraper` | `news` | `queries: [brandName]`, `maxArticles`, `language`, `country` | Always runs — brand name is default query; `channels.news.handle` overrides. Community actor. |
+| `xtech/google-ad-transparency-scraper` | `google_search` | `searchInputs: [domain]`, `maxPages` | Requires `channels.google_search.handle` = brand's website domain. Skipped if not configured. Community actor. |
+| `apify/linkedin-company-scraper` | `linkedin` | — | Growth+ only; post frequency, follower count. Official Apify actor. |
+
+**Important:** Only `apify/instagram-scraper` and `apify/facebook-ads-scraper` are under the official `apify/` namespace. All others are community actors. Verify actor availability in the Apify Store before referencing.
 
 ### Usage pattern
 
 ```ts
 const run = await apifyClient.actor('apify/instagram-scraper').call({
-  usernames: ['britanniaindustries', 'oreoIndia'],
-  resultsLimit: 50,
+  directUrls: ['https://www.instagram.com/britanniaindustries/'],
+  resultsLimit: 12,
+  resultsType: 'posts',
 })
 const { items } = await apifyClient.dataset(run.defaultDatasetId).listItems()
 ```
@@ -155,13 +160,12 @@ return { region: country_code === 'IN' && !vpn && !proxy ? 'in' : 'row' }
 
 ---
 
-## Meta Ads Library API
+## Meta Ads Library
 
-**Purpose:** Public competitor ad data (no auth required)  
-**Endpoint:** `https://www.facebook.com/ads/library/api/`  
-**Billing:** Free (rate limited)
+**Purpose:** Public competitor ad data  
+**Accessed via:** Apify `apify/facebook-ads-scraper` (see Apify section above) — not a direct API call.
 
-Meta's Ads Library is a public transparency tool. No authentication is needed for basic ad searches. Rate limit: ~10 requests/minute. The collector staggers requests across competitor accounts.
+The collector constructs a Facebook Ads Library search URL from the brand's Facebook page handle (or brand name as fallback) and passes it to the Apify actor as `startUrls`. No direct API credentials required.
 
 ---
 

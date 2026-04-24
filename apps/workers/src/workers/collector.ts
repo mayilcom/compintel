@@ -56,11 +56,13 @@ const ACTOR_SPECS: Partial<Record<Channel, ActorSpec>> = {
 
   meta_ads: {
     actorId: 'apify/facebook-ads-scraper',
-    buildInput: (h, brandName) => ({
-      searchTerms: [brandName],
-      country: 'IN',
-      maxAds: 50,
-    }),
+    buildInput: (h, brandName) => {
+      // Use configured FB page handle if available; fall back to Ads Library keyword search
+      const url = h.handle
+        ? `https://www.facebook.com/${h.handle.replace('@', '')}`
+        : `https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=IN&q=${encodeURIComponent(brandName)}&search_type=keyword_unordered`
+      return { startUrls: [{ url }], resultsLimit: 50, activeStatus: 'active' }
+    },
     extractMetrics: (items) => {
       const ads = items as Array<Record<string, unknown>>
       const activeAds = ads.filter(a => a.isActive).length
@@ -74,11 +76,10 @@ const ACTOR_SPECS: Partial<Record<Channel, ActorSpec>> = {
   },
 
   amazon: {
-    actorId: 'apify/amazon-reviews-scraper',
+    actorId: 'junglee/amazon-reviews-scraper',
     buildInput: (h) => ({
-      asins: h.asin ?? [],
+      productUrls: (h.asin ?? []).map((asin: string) => ({ url: `https://www.amazon.in/dp/${asin}` })),
       maxReviews: 100,
-      sortBy: 'recent',
     }),
     extractMetrics: (items) => {
       const reviews = items as Array<Record<string, unknown>>
@@ -93,11 +94,12 @@ const ACTOR_SPECS: Partial<Record<Channel, ActorSpec>> = {
   },
 
   news: {
-    actorId: 'apify/google-news-scraper',
+    actorId: 'automation-lab/google-news-scraper',
     buildInput: (h, brandName) => ({
-      query: h.handle ?? brandName,
-      maxItems: 20,
+      queries: [h.handle ?? brandName],
+      maxArticles: 20,
       language: 'en',
+      country: 'IN',
     }),
     extractMetrics: (items) => {
       const articles = items as Array<Record<string, unknown>>
@@ -109,14 +111,16 @@ const ACTOR_SPECS: Partial<Record<Channel, ActorSpec>> = {
   },
 
   google_search: {
-    actorId: 'apify/google-ads-transparency-scraper',
-    buildInput: (h, brandName) => ({
-      advertiserName: brandName,
-      country: 'IN',
+    // Searches Google Ads Transparency Center by brand domain (e.g. "britannia.co.in").
+    // Requires google_search.handle = brand domain configured per competitor brand.
+    actorId: 'xtech/google-ad-transparency-scraper',
+    buildInput: (h) => ({
+      searchInputs: [h.handle],
+      maxPages: 3,
     }),
     extractMetrics: (items) => ({
       active_search_ads: (items as unknown[]).length,
-      ad_copies: (items as Array<Record<string, unknown>>).slice(0, 5).map(a => a.headline),
+      ad_copies: (items as Array<Record<string, unknown>>).slice(0, 5).map(a => a.headline ?? a.title ?? a.adTitle),
     }),
   },
 }
@@ -172,8 +176,9 @@ async function run() {
         const spec = ACTOR_SPECS[channel]
         const handles = brand.channels[channel] as ChannelHandles | undefined
 
-        // Skip if brand has no handle for this channel
-        if (!spec || !handles?.handle && !handles?.asin?.length && channel !== 'news' && channel !== 'google_search') {
+        // Skip if brand has no handle for this channel.
+        // news + meta_ads run on brand name alone; google_search needs a domain handle.
+        if (!spec || (!handles?.handle && !handles?.asin?.length && channel !== 'news' && channel !== 'meta_ads')) {
           continue
         }
 

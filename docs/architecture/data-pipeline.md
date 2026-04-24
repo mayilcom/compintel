@@ -36,12 +36,12 @@ For each active account × competitor × enabled channel:
 | Channel | Method | Notes |
 |---------|--------|-------|
 | Instagram | Apify `apify/instagram-scraper` | Profile stats + recent posts. `ownerFollowersCount` captured as `metrics.follower_count`. |
-| Meta Ads | Meta Ads Library API | Public endpoint, no auth |
-| Amazon | Apify `apify/amazon-product-scraper` | ASIN list per competitor |
-| google_search | Google Ads Transparency Center scrape | Apify actor. Channel key is `google_search` (not `google_ads`). |
+| Meta Ads | Apify `apify/facebook-ads-scraper` | Input: `startUrls` with FB page URL (if handle set) or Ads Library keyword-search URL. No handle required — falls back to brand name search. |
+| Amazon | Apify `junglee/amazon-reviews-scraper` | Input: `productUrls` constructed from ASINs (`https://www.amazon.in/dp/{asin}`). Requires `asin` handle. |
+| google_search | Apify `xtech/google-ad-transparency-scraper` | Input: `searchInputs: [domain]`. Requires `google_search.handle` = brand's website domain (e.g. `britannia.co.in`). Skipped if not configured. |
 | LinkedIn | Apify `apify/linkedin-company-scraper` | Growth+ only |
 | YouTube | YouTube Data API v3 | Channel uploads, view count |
-| News/PR | RSS + Google News RSS | No scraper needed |
+| News/PR | Apify `automation-lab/google-news-scraper` | Input: `queries: [brandName]`, `country: 'IN'`. No handle required — brand name is the query. |
 
 ### Error handling
 - 3 retries with exponential backoff per scraper call

@@ -5,8 +5,11 @@ import { buildChannels } from '@/lib/platforms'
 
 /**
  * PATCH /api/settings/brands/[brand_id]
- * Updates channels (selected platforms + handles) for a brand.
- * Body: { selectedPlatforms: string[], handles: Record<string, string> }
+ * Updates channels (selected platforms + handles) and optionally domain for a brand.
+ * Body: { selectedPlatforms: string[], handles: Record<string, string>, domain?: string | null }
+ *
+ * Side-effect: if google_search is in selectedPlatforms and has a handle (domain),
+ * brand.domain is also updated so the dashboard and collector stay in sync.
  *
  * DELETE /api/settings/brands/[brand_id]
  * Removes a competitor brand. Client brands (is_client=true) cannot be deleted.
@@ -51,9 +54,10 @@ export async function PATCH(
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
   }
 
-  const { selectedPlatforms, handles } = body as {
+  const { selectedPlatforms, handles, domain } = body as {
     selectedPlatforms: string[]
     handles: Record<string, string>
+    domain?: string | null
   }
 
   if (!Array.isArray(selectedPlatforms)) {
@@ -65,9 +69,18 @@ export async function PATCH(
 
   const channels = buildChannels(selectedPlatforms, handles ?? {})
 
+  // Derive domain to persist: explicit body value > google_search handle > no change (undefined)
+  const resolvedDomain: string | null | undefined =
+    domain !== undefined
+      ? (typeof domain === 'string' && domain.trim() ? domain.trim() : null)
+      : (channels.google_search?.handle ?? undefined)
+
+  const updatePayload: Record<string, unknown> = { channels }
+  if (resolvedDomain !== undefined) updatePayload.domain = resolvedDomain
+
   const { data: updated, error: updateErr } = await db
     .from('brands')
-    .update({ channels })
+    .update(updatePayload)
     .eq('brand_id', brandId)
     .select('brand_id, brand_name, domain, is_client, channels, is_paused')
     .single()

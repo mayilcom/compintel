@@ -5,6 +5,58 @@ Format: `[version] YYYY-MM-DD — Description`
 
 ---
 
+## [0.1.41] 2026-04-24 — Settings: full channel data collection for all worker inputs
+
+Closes the data-collection gap between what the collector workers need and what the UI lets users configure. Every field the workers read from `brands.channels` can now be entered and saved through Settings → Brands & Competitors.
+
+### Added
+
+- **`src/lib/platforms.ts`** — New `PlatformDef.hint` field for secondary help text shown beneath inputs. Added two platforms:
+  - `google_search` ("Google Ads") — domain input (e.g. `britannia.co.in`), maps to `channels.google_search.handle`. Used by `xtech/google-ad-transparency-scraper`.
+  - Amazon placeholder updated to ASIN input (`e.g. B09XYZ123, B08ABC456`) with hint text linking to the product page URL pattern.
+- **`src/lib/types.ts`** — `DbBrand.channels` value type now includes `asin?: string[]` to match the worker `ChannelHandles` interface.
+
+### Changed
+
+- **`src/lib/platforms.ts`**
+  - `buildChannels()`: Amazon now produces `{ asin: string[] }` (comma-split + trimmed) instead of `{ brand_name: string }`. Other channels unchanged.
+  - `parseChannels()`: Reverse-maps `asin[]` back to comma-separated string for form display.
+  - `extractHandle()`: `google_search` strips `https://www.` prefix to normalise to a bare domain. `amazon` and `news` values are passed through verbatim (no URL stripping). Added `ChannelValue` export type.
+- **`src/app/app/settings/competitors/page.tsx`**
+  - `ChannelEditor`: Added `domain` field (text input) above the platform pills. Passes `domain` to `onSave`. Shows `p.hint` beneath each platform input when present.
+  - `ChannelSummary`: Now renders ASIN arrays as comma-joined string; skips entries with no value.
+  - "Add competitor" form: Added `domain` field (grid row alongside Brand name). Passes `domain` in the POST body. Removed legacy `instagram`/`amazon_brand` top-level fields — everything flows through `channels` object.
+- **`src/app/api/settings/brands/[brand_id]/route.ts`** (PATCH): Accepts optional `domain` in body. Derives `resolvedDomain` as: explicit `domain` body value → `google_search.handle` from built channels → no change. Updates `brand.domain` column alongside `channels` so dashboard and collector stay in sync.
+- **`src/app/api/onboarding/competitors/save/route.ts`**: Simplified `CompetitorInput` (removed legacy `instagram`/`amazon_brand` — all data comes through `channels`). Auto-populates `channels.google_search.handle` from `domain` on insert when not already set, so existing data collected at onboarding flows to the Ads Transparency collector without a settings edit.
+- **`src/app/app/dashboard/page.tsx`**: Fixed stale schedule text — "Saturday 11pm IST" → "Saturday 8pm IST" (updated in v1.2 pipeline schedule).
+- **`docs/architecture/api-integrations.md`**: Replaced stale Apify actors table (all wrong IDs) with correct actor IDs, input field names, and community-vs-official distinction. Replaced "Meta Ads Library API" section (direct API) with note that collection goes through the Apify actor.
+
+### Why
+
+Workers read `channels.amazon.asin[]` and `channels.google_search.handle` but the UI had no fields to set them — Amazon defaulted to brand-name fallback, and google_search was silently skipped for every brand. Adding these fields means the collector can now run the ASIN-based Amazon scraper and the domain-based Google Ads Transparency scraper for brands that have the data configured.
+
+---
+
+## [0.1.40] 2026-04-24 — Fix: correct Apify actor IDs and input schemas (all five channels)
+
+All non-Instagram Apify actor slugs required correction. Diagnosed iteratively on first live pipeline run.
+
+### Changed
+
+- **`apps/workers/src/workers/collector.ts`**
+  - `amazon`: `apify/amazon-reviews-scraper` → `junglee/amazon-reviews-scraper`; input `asins: [...]` → `productUrls: [{ url: 'https://www.amazon.in/dp/{asin}' }]`; removed unsupported `sortBy`
+  - `news`: `apify/google-news-scraper` → `automation-lab/google-news-scraper`; input `query` → `queries: [...]`, `maxItems` → `maxArticles`, added `country: 'IN'`
+  - `google_search`: `apify/google-ads-transparency-scraper` → `xtech/google-ad-transparency-scraper`; input changed to `{ searchInputs: [h.handle], maxPages: 3 }` where `handle` = brand's website domain; channel now requires a domain handle (removed from no-handle-exempt list)
+  - `meta_ads`: `apify/facebook-ads-scraper` input fixed from `{ searchTerms, country, maxAds }` → `{ startUrls: [{ url }], resultsLimit, activeStatus }`; URL constructed from FB page handle if set, else falls back to Ads Library keyword search URL; added `meta_ads` to no-handle-exempt list (runs on brand name alone)
+  - Skip logic: channels that need no handle are now `news` and `meta_ads` (not `google_search`)
+- **`docs/architecture/data-pipeline.md`** — Updated Stage 1 scrapers table with correct actor IDs and input patterns for all five channels.
+
+### Why
+
+`apify/instagram-scraper` and `apify/facebook-ads-scraper` are the only channels under the official `apify/` namespace. All others route through community actors. The `meta_ads` input error (`startUrls is required`) was only visible after the other three actors began throwing "Actor not found" — each error required a separate live run to surface because Railway streams Apify actor stdout and errors go to stderr JSON.
+
+---
+
 ## [0.1.39] 2026-04-24 — Intelligence layer V1 — email feedback links, admin verifier queue, channel-pack classifier
 
 Completes the remaining ADR-013 V1 UI / onboarding items. The email brief is now instrumented (signed-URL links → landing page), admin has a review queue for dropped claims, and new accounts get auto-classified into a channel pack at brand onboarding.

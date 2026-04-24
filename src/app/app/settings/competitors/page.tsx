@@ -16,7 +16,7 @@ function ChannelEditor({
   onCancel,
 }: {
   brand: Brand
-  onSave: (selectedPlatforms: string[], handles: Record<string, string>) => Promise<void>
+  onSave: (selectedPlatforms: string[], handles: Record<string, string>, domain: string | null) => Promise<void>
   onCancel: () => void
 }) {
   const initial = parseChannels(brand.channels)
@@ -24,6 +24,7 @@ function ChannelEditor({
     PLATFORMS.filter(p => initial[p.id] !== undefined).map(p => p.id)
   )
   const [handles, setHandles] = useState<Record<string, string>>(initial)
+  const [domain, setDomain] = useState(brand.domain ?? '')
   const [saving, setSaving] = useState(false)
 
   function togglePlatform(id: string) {
@@ -34,12 +35,24 @@ function ChannelEditor({
 
   async function handleSave() {
     setSaving(true)
-    await onSave(selectedPlatforms, handles)
+    await onSave(selectedPlatforms, handles, domain.trim() || null)
     setSaving(false)
   }
 
   return (
     <div className="mt-3 flex flex-col gap-3 border-t border-border pt-3">
+      {/* Domain */}
+      <div className="flex flex-col gap-1.5">
+        <label className="text-[11px] text-muted font-medium">Website domain</label>
+        <input
+          type="text"
+          placeholder="e.g. britannia.co.in"
+          value={domain}
+          onChange={(e) => setDomain(e.target.value)}
+          className="h-9 rounded-[8px] border border-border bg-surface px-3 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-gold/30"
+        />
+      </div>
+
       <p className="text-[11px] text-muted font-medium">Platforms</p>
       <div className="flex flex-wrap gap-2">
         {PLATFORMS.map((p) => {
@@ -64,7 +77,7 @@ function ChannelEditor({
       {selectedPlatforms.length > 0 && (
         <div className="grid gap-3 sm:grid-cols-2">
           {PLATFORMS.filter(p => selectedPlatforms.includes(p.id)).map((p) => (
-            <div key={p.id} className="flex flex-col gap-1.5">
+            <div key={p.id} className="flex flex-col gap-1">
               <label className="text-[11px] text-muted font-medium">{p.label}</label>
               <input
                 type="text"
@@ -73,6 +86,9 @@ function ChannelEditor({
                 onChange={(e) => setHandles(prev => ({ ...prev, [p.id]: e.target.value }))}
                 className="h-9 rounded-[8px] border border-border bg-surface px-3 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-gold/30"
               />
+              {p.hint && (
+                <p className="text-[10px] text-muted">{p.hint}</p>
+              )}
             </div>
           ))}
         </div>
@@ -95,25 +111,27 @@ function ChannelSummary({ channels }: { channels: Brand['channels'] }) {
   }
   const parts = Object.entries(channels).map(([key, val]) => {
     const platform = PLATFORMS.find(p => p.channelKey === key)
-    const value    = val.handle ?? val.brand_name ?? ''
-    return platform ? `${platform.label}: ${value}` : null
+    const value    = val.asin ? val.asin.join(', ') : (val.handle ?? val.brand_name ?? '')
+    return platform && value ? `${platform.label}: ${value}` : null
   }).filter(Boolean)
+  if (parts.length === 0) return <span className="text-[11px] text-muted italic">No channels set</span>
   return <span className="text-[11px] text-muted">{parts.join(' · ')}</span>
 }
 
 export default function CompetitorsSettingsPage() {
-  const [brands, setBrands]         = useState<Brand[]>([])
-  const [isLoading, setIsLoading]   = useState(true)
-  const [editingId, setEditingId]   = useState<string | null>(null)
+  const [brands, setBrands]           = useState<Brand[]>([])
+  const [isLoading, setIsLoading]     = useState(true)
+  const [editingId, setEditingId]     = useState<string | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
 
-  // Add competitor form
-  const [showAdd, setShowAdd]                   = useState(false)
-  const [newName, setNewName]                   = useState('')
-  const [newSelectedPlatforms, setNewSelected]  = useState<string[]>(['instagram', 'youtube'])
-  const [newHandles, setNewHandles]             = useState<Record<string, string>>({})
-  const [isAdding, setIsAdding]                 = useState(false)
-  const [addError, setAddError]                 = useState<string | null>(null)
+  // Add competitor form state
+  const [showAdd, setShowAdd]                  = useState(false)
+  const [newName, setNewName]                  = useState('')
+  const [newDomain, setNewDomain]              = useState('')
+  const [newSelectedPlatforms, setNewSelected] = useState<string[]>(['instagram'])
+  const [newHandles, setNewHandles]            = useState<Record<string, string>>({})
+  const [isAdding, setIsAdding]                = useState(false)
+  const [addError, setAddError]                = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/settings/brands')
@@ -123,14 +141,19 @@ export default function CompetitorsSettingsPage() {
       .finally(() => setIsLoading(false))
   }, [])
 
-  const clientBrand    = brands.find(b => b.is_client)
-  const competitors    = brands.filter(b => !b.is_client)
+  const clientBrand = brands.find(b => b.is_client)
+  const competitors = brands.filter(b => !b.is_client)
 
-  async function handleSaveChannels(brandId: string, selectedPlatforms: string[], handles: Record<string, string>) {
+  async function handleSaveChannels(
+    brandId: string,
+    selectedPlatforms: string[],
+    handles: Record<string, string>,
+    domain: string | null,
+  ) {
     const res = await fetch(`/api/settings/brands/${brandId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ selectedPlatforms, handles }),
+      body: JSON.stringify({ selectedPlatforms, handles, domain }),
     })
     if (res.ok) {
       const updated = await res.json() as Brand
@@ -163,28 +186,28 @@ export default function CompetitorsSettingsPage() {
     setAddError(null)
 
     const channels = buildChannels(newSelectedPlatforms, newHandles)
+    const domain   = newDomain.trim() || null
+
     const res = await fetch('/api/onboarding/competitors/save', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         competitors: [{
-          brand_name:   name,
-          domain:       null,
-          instagram:    channels.instagram?.handle ?? null,
-          amazon_brand: channels.amazon?.brand_name ?? null,
-          category:     null,
+          brand_name: name,
+          domain,
           channels,
+          category: null,
         }],
       }),
     })
 
     if (res.ok) {
-      // Reload brands list
       const fresh = await fetch('/api/settings/brands').then(r => r.json()) as { brands: Brand[] }
       setBrands(fresh.brands)
       setNewName('')
+      setNewDomain('')
       setNewHandles({})
-      setNewSelected(['instagram', 'youtube'])
+      setNewSelected(['instagram'])
       setShowAdd(false)
     } else {
       const body = await res.json().catch(() => ({})) as { error?: string }
@@ -235,7 +258,7 @@ export default function CompetitorsSettingsPage() {
               {editingId === clientBrand.brand_id && (
                 <ChannelEditor
                   brand={clientBrand}
-                  onSave={(sp, h) => handleSaveChannels(clientBrand.brand_id, sp, h)}
+                  onSave={(sp, h, d) => handleSaveChannels(clientBrand.brand_id, sp, h, d)}
                   onCancel={() => setEditingId(null)}
                 />
               )}
@@ -261,15 +284,27 @@ export default function CompetitorsSettingsPage() {
         {showAdd && (
           <Card>
             <CardContent className="p-5 flex flex-col gap-4">
-              <div className="flex flex-col gap-1.5">
-                <label className="text-[11px] text-muted font-medium">Brand name *</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Britannia"
-                  value={newName}
-                  onChange={(e) => setNewName(e.target.value)}
-                  className="h-9 rounded-[8px] border border-border bg-surface px-3 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-gold/30"
-                />
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[11px] text-muted font-medium">Brand name *</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Britannia"
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    className="h-9 rounded-[8px] border border-border bg-surface px-3 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-gold/30"
+                  />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-[11px] text-muted font-medium">Website domain</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. britannia.co.in"
+                    value={newDomain}
+                    onChange={(e) => setNewDomain(e.target.value)}
+                    className="h-9 rounded-[8px] border border-border bg-surface px-3 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-gold/30"
+                  />
+                </div>
               </div>
 
               <div className="flex flex-col gap-2">
@@ -298,7 +333,7 @@ export default function CompetitorsSettingsPage() {
               {newSelectedPlatforms.length > 0 && (
                 <div className="grid gap-3 sm:grid-cols-2">
                   {PLATFORMS.filter(p => newSelectedPlatforms.includes(p.id)).map((p) => (
-                    <div key={p.id} className="flex flex-col gap-1.5">
+                    <div key={p.id} className="flex flex-col gap-1">
                       <label className="text-[11px] text-muted font-medium">{p.label}</label>
                       <input
                         type="text"
@@ -307,6 +342,9 @@ export default function CompetitorsSettingsPage() {
                         onChange={(e) => setNewHandles(prev => ({ ...prev, [p.id]: e.target.value }))}
                         className="h-9 rounded-[8px] border border-border bg-surface px-3 text-sm text-ink placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-gold/30"
                       />
+                      {p.hint && (
+                        <p className="text-[10px] text-muted">{p.hint}</p>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -373,7 +411,7 @@ export default function CompetitorsSettingsPage() {
                 {editingId === comp.brand_id && (
                   <ChannelEditor
                     brand={comp}
-                    onSave={(sp, h) => handleSaveChannels(comp.brand_id, sp, h)}
+                    onSave={(sp, h, d) => handleSaveChannels(comp.brand_id, sp, h, d)}
                     onCancel={() => setEditingId(null)}
                   />
                 )}

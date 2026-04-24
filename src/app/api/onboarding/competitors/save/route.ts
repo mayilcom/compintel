@@ -3,12 +3,10 @@ import { auth } from '@clerk/nextjs/server'
 import { createServiceClient } from '@/lib/supabase/server'
 
 interface CompetitorInput {
-  brand_name:   string
-  domain?:      string | null
-  instagram?:   string | null
-  amazon_brand?: string | null
-  category?:    string | null
-  channels?:    Record<string, { handle?: string; url?: string }> | null
+  brand_name: string
+  domain?:    string | null
+  category?:  string | null
+  channels?:  Record<string, { handle?: string; asin?: string[]; brand_name?: string }> | null
 }
 
 /**
@@ -17,6 +15,10 @@ interface CompetitorInput {
  * Skips duplicates (brand_name already exists for this account).
  *
  * Body: { competitors: CompetitorInput[] }
+ *
+ * Side-effect: if a brand has a domain and no google_search channel configured,
+ * google_search.handle is auto-populated from the domain so the Ads Transparency
+ * collector can run without requiring a separate settings edit.
  */
 export async function POST(req: NextRequest) {
   const { userId } = await auth()
@@ -62,18 +64,19 @@ export async function POST(req: NextRequest) {
   const toInsert = competitors
     .filter(c => c.brand_name?.trim() && !existingNames.has(c.brand_name.trim().toLowerCase()))
     .map(c => {
-      // Merge explicit channels object with legacy instagram/amazon fields
       const channels: Record<string, unknown> = { ...(c.channels ?? {}) }
-      if (c.instagram && !channels.instagram) {
-        channels.instagram = { handle: c.instagram.replace('@', '') }
+
+      // Auto-populate google_search from domain if not already set
+      const domain = c.domain?.trim() || null
+      if (domain && !channels.google_search) {
+        const cleanDomain = domain.replace(/^https?:\/\/(www\.)?/, '').split('/')[0].toLowerCase()
+        if (cleanDomain) channels.google_search = { handle: cleanDomain }
       }
-      if (c.amazon_brand && !channels.amazon) {
-        channels.amazon = { brand_name: c.amazon_brand }
-      }
+
       return {
         account_id: accountId,
         brand_name: c.brand_name.trim(),
-        domain:     c.domain?.trim() || null,
+        domain,
         is_client:  false,
         channels,
         category:   c.category ?? accountCategory ?? null,

@@ -212,7 +212,7 @@ export default async function DashboardPage() {
           <p className="text-xs text-muted">
             {snapshots && snapshots.length > 0
               ? `Updated week of ${weekRangeLabel(weekStart)}`
-              : 'No data yet — collection runs Saturday 11pm IST'}
+              : 'No data yet — collection runs Saturday 8pm IST'}
           </p>
         </div>
         <CompetitorTable competitors={competitors} />

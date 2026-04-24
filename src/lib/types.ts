@@ -8,7 +8,7 @@ export interface DbBrand {
   brand_name: string
   domain:     string | null
   is_client:  boolean
-  channels:   Record<string, { handle?: string; brand_name?: string }> | null
+  channels:   Record<string, { handle?: string; brand_name?: string; asin?: string[] }> | null
   is_paused:  boolean
 }
 
