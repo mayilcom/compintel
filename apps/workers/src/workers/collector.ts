@@ -23,18 +23,69 @@ function currentWeekStart(): string {
   return d.toISOString().slice(0, 10)
 }
 
-// ── Channel → Apify actor mapping ────────────────────────────
-// Each entry defines the actor to run and how to build its input
-// from the brand's channel handles.
+// ── Channel spec types ────────────────────────────────────────
+// Apify: runs an Apify actor and parses the dataset output.
+// Direct: fetches data without Apify (free, no compute units consumed).
 
-interface ActorSpec {
+interface ApifySpec {
+  source: 'apify'
   actorId: string
   buildInput: (handles: ChannelHandles, brandName: string) => Record<string, unknown>
   extractMetrics: (output: unknown[]) => Record<string, unknown>
 }
 
-const ACTOR_SPECS: Partial<Record<Channel, ActorSpec>> = {
+interface DirectSpec {
+  source: 'direct'
+  collect: (handles: ChannelHandles, brandName: string) => Promise<Record<string, unknown>>
+}
+
+type ChannelSpec = ApifySpec | DirectSpec
+
+// ── Google News RSS ───────────────────────────────────────────
+// Free — no Apify compute units. Google News RSS is a public endpoint with
+// no auth or rate limits at this query volume.
+
+function parseRssItems(xml: string): Array<{ title: string; url: string; date: string; source: string }> {
+  const items: Array<{ title: string; url: string; date: string; source: string }> = []
+  for (const match of xml.matchAll(/<item>([\s\S]*?)<\/item>/g)) {
+    const block = match[1]
+    const title   = (block.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/s) ?? block.match(/<title>(.*?)<\/title>/s))?.[1]?.trim() ?? ''
+    const url     = block.match(/<link>(.*?)<\/link>/s)?.[1]?.trim() ?? ''
+    const date    = block.match(/<pubDate>(.*?)<\/pubDate>/s)?.[1]?.trim() ?? ''
+    const source  = block.match(/<source[^>]*>(.*?)<\/source>/s)?.[1]?.trim() ?? ''
+    if (title) items.push({ title, url, date, source })
+  }
+  return items
+}
+
+async function collectGoogleNews(query: string): Promise<Record<string, unknown>> {
+  const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-IN&gl=IN&ceid=IN:en`
+  const res = await fetch(rssUrl, {
+    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; Mayil/1.0)' },
+    signal: AbortSignal.timeout(15_000),
+  })
+  if (!res.ok) throw new Error(`Google News RSS error ${res.status}`)
+  const xml     = await res.text()
+  const articles = parseRssItems(xml)
+
+  // Filter to last 7 days
+  const cutoff  = Date.now() - 7 * 24 * 3600 * 1000
+  const recent  = articles.filter(a => {
+    const t = a.date ? new Date(a.date).getTime() : 0
+    return !t || t >= cutoff
+  })
+
+  return {
+    news_count_7d: recent.length,
+    headlines: recent.slice(0, 5).map(a => ({ title: a.title, url: a.url, date: a.date, source: a.source })),
+  }
+}
+
+// ── Channel spec map ──────────────────────────────────────────
+
+const CHANNEL_SPECS: Partial<Record<Channel, ChannelSpec>> = {
   instagram: {
+    source: 'apify',
     actorId: 'apify/instagram-scraper',
     buildInput: (h) => ({
       directUrls: [`https://www.instagram.com/${h.handle?.replace('@', '')}/`],
@@ -48,16 +99,15 @@ const ACTOR_SPECS: Partial<Record<Channel, ActorSpec>> = {
       const totalComments = posts.reduce((s, p) => s + ((p.commentsCount as number) || 0), 0)
       const avgEngagement = postCount > 0 ? Math.round((totalLikes + totalComments) / postCount) : 0
       const lastPostDate = posts[0]?.timestamp as string | undefined
-      // ownerFollowersCount is included in each post item by the Apify Instagram scraper
       const followerCount = posts[0]?.ownerFollowersCount as number | undefined
       return { post_count_7d: postCount, avg_engagement: avgEngagement, last_post_date: lastPostDate ?? null, follower_count: followerCount ?? null }
     },
   },
 
   meta_ads: {
+    source: 'apify',
     actorId: 'apify/facebook-ads-scraper',
     buildInput: (h, brandName) => {
-      // Use configured FB page handle if available; fall back to Ads Library keyword search
       const url = h.handle
         ? `https://www.facebook.com/${h.handle.replace('@', '')}`
         : `https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=IN&q=${encodeURIComponent(brandName)}&search_type=keyword_unordered`
@@ -76,6 +126,7 @@ const ACTOR_SPECS: Partial<Record<Channel, ActorSpec>> = {
   },
 
   amazon: {
+    source: 'apify',
     actorId: 'junglee/amazon-reviews-scraper',
     buildInput: (h) => ({
       productUrls: (h.asin ?? []).map((asin: string) => ({ url: `https://www.amazon.in/dp/${asin}` })),
@@ -87,39 +138,23 @@ const ACTOR_SPECS: Partial<Record<Channel, ActorSpec>> = {
       const avgRating = ratings.length
         ? Math.round((ratings.reduce((s, r) => s + r, 0) / ratings.length) * 10) / 10
         : null
-      const reviewCount = reviews.length
-      const negativeCount = ratings.filter(r => r <= 2).length
-      return { avg_rating: avgRating, review_count_7d: reviewCount, negative_reviews_7d: negativeCount }
+      return { avg_rating: avgRating, review_count_7d: reviews.length, negative_reviews_7d: ratings.filter(r => r <= 2).length }
     },
   },
 
+  // Free: Google News RSS — no Apify compute units.
   news: {
-    actorId: 'automation-lab/google-news-scraper',
-    buildInput: (h, brandName) => ({
-      queries: [h.handle ?? brandName],
-      maxArticles: 20,
-      language: 'en',
-      country: 'IN',
-    }),
-    extractMetrics: (items) => {
-      const articles = items as Array<Record<string, unknown>>
-      return {
-        news_count_7d: articles.length,
-        headlines: articles.slice(0, 5).map(a => ({ title: a.title, url: a.link, date: a.date })),
-      }
-    },
+    source: 'direct',
+    collect: async (h, brandName) => collectGoogleNews(h.handle ?? brandName),
   },
 
   google_search: {
-    // Searches Google Ads Transparency Center by brand domain (e.g. "britannia.co.in").
-    // Requires google_search.handle = brand domain configured per competitor brand.
+    source: 'apify',
+    // Requires google_search.handle = brand's website domain (e.g. "britannia.co.in").
     actorId: 'xtech/google-ad-transparency-scraper',
-    buildInput: (h) => ({
-      searchInputs: [h.handle],
-      maxPages: 3,
-    }),
+    buildInput: (h) => ({ searchInputs: [h.handle], maxPages: 3 }),
     extractMetrics: (items) => ({
-      active_search_ads: (items as unknown[]).length,
+      active_search_ads: items.length,
       ad_copies: (items as Array<Record<string, unknown>>).slice(0, 5).map(a => a.headline ?? a.title ?? a.adTitle),
     }),
   },
@@ -173,24 +208,31 @@ async function run() {
 
     for (const brand of brands as Brand[]) {
       for (const channel of channels) {
-        const spec = ACTOR_SPECS[channel]
+        const spec = CHANNEL_SPECS[channel]
         const handles = brand.channels[channel] as ChannelHandles | undefined
 
-        // Skip if brand has no handle for this channel.
-        // news + meta_ads run on brand name alone; google_search needs a domain handle.
+        // news and meta_ads run without a handle (use brand name).
+        // All others need either a handle or ASINs configured.
         if (!spec || (!handles?.handle && !handles?.asin?.length && channel !== 'news' && channel !== 'meta_ads')) {
           continue
         }
 
         try {
-          log.info('collecting', { brand: brand.brand_name, channel })
+          log.info('collecting', { brand: brand.brand_name, channel, source: spec.source })
 
-          const input = spec.buildInput(handles ?? {}, brand.brand_name)
-          const run = await apify.actor(spec.actorId).call(input, { waitSecs: 120 })
-          const { items } = await apify.dataset(run.defaultDatasetId).listItems()
+          let metrics: Record<string, unknown>
+          let rawContent: Record<string, unknown>
 
-          const metrics = spec.extractMetrics(items)
-          const rawContent = { items: items.slice(0, 20) }   // cap stored raw
+          if (spec.source === 'direct') {
+            metrics    = await spec.collect(handles ?? {}, brand.brand_name)
+            rawContent = {}
+          } else {
+            const input = spec.buildInput(handles ?? {}, brand.brand_name)
+            const run   = await apify.actor(spec.actorId).call(input, { waitSecs: 120 })
+            const { items } = await apify.dataset(run.defaultDatasetId).listItems()
+            metrics    = spec.extractMetrics(items)
+            rawContent = { items: items.slice(0, 20) }
+          }
 
           const { error: upsertErr } = await db.from('snapshots').upsert({
             brand_id: brand.brand_id,
@@ -198,7 +240,7 @@ async function run() {
             channel,
             metrics,
             raw_content: rawContent,
-            source: 'apify',
+            source: spec.source === 'direct' ? 'direct' : 'apify',
             collection_status: 'success',
             collected_at: new Date().toISOString(),
           }, { onConflict: 'brand_id,week_start,channel' })

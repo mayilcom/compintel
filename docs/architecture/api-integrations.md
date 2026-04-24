@@ -1,13 +1,14 @@
 # API Integrations
 
-**Last updated:** 2026-04-24
+**Last updated:** 2026-04-25
 
 ---
 
 ## Apify
 
-**Purpose:** Managed web scraping for Instagram, Meta Ads, Amazon, Google Ads, News, LinkedIn, YouTube  
-**Billing:** Pay-per-compute-unit. Estimate: ~$15–30/month at 50 accounts.
+**Purpose:** Managed web scraping for Instagram, Meta Ads, Amazon, Google Ads, LinkedIn, YouTube  
+**Billing:** Pay-per-compute-unit. Estimate: ~$15–30/month at 50 accounts.  
+**Note:** Google News was removed from Apify — it now uses a free direct RSS feed (see below).
 
 ### Actors used
 
@@ -16,7 +17,6 @@
 | `apify/instagram-scraper` | `instagram` | `directUrls`, `resultsLimit`, `resultsType` | Profile stats + recent posts. Official Apify actor. |
 | `apify/facebook-ads-scraper` | `meta_ads` | `startUrls` (Ads Library URL or FB page URL), `resultsLimit`, `activeStatus` | Facebook Ads Library. Official Apify actor. Falls back to keyword search URL if no page handle configured. |
 | `junglee/amazon-reviews-scraper` | `amazon` | `productUrls: [{url: 'https://www.amazon.in/dp/{ASIN}'}]`, `maxReviews` | Requires ASINs stored in `brands.channels.amazon.asin[]`. Community actor. |
-| `automation-lab/google-news-scraper` | `news` | `queries: [brandName]`, `maxArticles`, `language`, `country` | Always runs — brand name is default query; `channels.news.handle` overrides. Community actor. |
 | `xtech/google-ad-transparency-scraper` | `google_search` | `searchInputs: [domain]`, `maxPages` | Requires `channels.google_search.handle` = brand's website domain. Skipped if not configured. Community actor. |
 | `apify/linkedin-company-scraper` | `linkedin` | — | Growth+ only; post frequency, follower count. Official Apify actor. |
 
@@ -179,12 +179,78 @@ return { region: country_code === 'IN' && !vpn && !proxy ? 'in' : 'row' }
 
 ---
 
+## Google News RSS
+
+**Purpose:** Brand news and PR coverage for all competitor brands  
+**Cost:** Free — no auth, no rate limits at current query volume.  
+**Where:** `apps/workers/src/workers/collector.ts` — `news` channel, `source: 'direct'`
+
+### How it works
+
+The collector fetches Google News RSS directly using Node's built-in `fetch`. No Apify actor, no compute units consumed.
+
+```
+GET https://news.google.com/rss/search?q={brandName}&hl=en-IN&gl=IN&ceid=IN:en
+```
+
+Response is standard RSS/XML. A lightweight inline parser extracts `<item>` blocks. Articles older than 7 days are filtered before writing to `snapshots.metrics`.
+
+### Stored metrics
+
+```json
+{
+  "news_count_7d": 4,
+  "headlines": [
+    { "title": "...", "url": "...", "date": "Thu, 24 Apr 2026 ...", "source": "Economic Times" }
+  ]
+}
+```
+
+### Why not the Apify actor
+
+`automation-lab/google-news-scraper` was a community actor with an uncertain maintenance track record and non-zero Apify cost. The RSS feed is the canonical public endpoint Google provides for this data — more reliable and free.
+
+---
+
 ## Meta Ads Library
 
 **Purpose:** Public competitor ad data  
 **Accessed via:** Apify `apify/facebook-ads-scraper` (see Apify section above) — not a direct API call.
 
 The collector constructs a Facebook Ads Library search URL from the brand's Facebook page handle (or brand name as fallback) and passes it to the Apify actor as `startUrls`. No direct API credentials required.
+
+### Upgrading to the official Meta Ads Library API (recommended)
+
+The [Meta Ads Library API](https://www.facebook.com/ads/library/api/) is free and returns structured JSON — more reliable than the Apify scraper and no compute-unit cost.
+
+**What's needed to activate it:**
+
+| Requirement | Notes |
+|---|---|
+| Facebook Developer App | Use the existing app tied to `FACEBOOK_APP_ID` / `FACEBOOK_APP_SECRET` |
+| App access token | `GET https://graph.facebook.com/oauth/access_token?client_id={id}&client_secret={secret}&grant_type=client_credentials` — no user auth required |
+| "Ads Library" product added | In the app dashboard: **Add Product → Ads Library API** |
+| Platform Terms acceptance | One-time checkbox in the app dashboard — no review process for basic search |
+| India country code | Pass `ad_reached_countries=['IN']` in every query |
+
+**No App Review required** for the basic keyword search tier (public ads, limited fields). App Review is only needed for bulk download or advertiser-level spending data — not required for what Mayil uses.
+
+**Endpoint:**
+
+```
+GET https://graph.facebook.com/v21.0/ads_archive
+  ?search_terms={brandName}
+  &ad_reached_countries=['IN']
+  &ad_type=ALL
+  &ad_active_status=ACTIVE
+  &fields=id,ad_creation_time,ad_creative_bodies,ad_delivery_start_time,page_name
+  &limit=50
+  &access_token={app_access_token}
+```
+
+**Important — Instagram Connect app:** The existing `INSTAGRAM_APP_ID` / `INSTAGRAM_APP_SECRET` app (Instagram Business Login) is a **separate app** from the Facebook app (`FACEBOOK_APP_ID`). The Ads Library product must be added to the **Facebook app**, not the Instagram one. These are distinct Facebook Developer Apps and cannot share the `r_dma_admin_pages_content` or `ads_library` products.
+
+**Migration path:** Replace the `meta_ads` Apify spec in `collector.ts` with a `source: 'direct'` spec that calls this endpoint using an app access token stored as `META_APP_ACCESS_TOKEN` env var on Railway.
 
 ---
 

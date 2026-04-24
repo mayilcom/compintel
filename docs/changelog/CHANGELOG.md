@@ -5,6 +5,28 @@ Format: `[version] YYYY-MM-DD — Description`
 
 ---
 
+## [0.1.44] 2026-04-25 — Google News: replace Apify actor with free RSS feed
+
+### Changed
+
+- **`apps/workers/src/workers/collector.ts`**
+  - Renamed `ACTOR_SPECS` → `CHANNEL_SPECS`. Added a `source` discriminant field: `'apify'` for actors, `'direct'` for free HTTP fetches.
+  - `news` channel migrated from `automation-lab/google-news-scraper` (Apify, paid) to a direct Google News RSS fetch (`https://news.google.com/rss/search?q={brand}&hl=en-IN&gl=IN&ceid=IN:en`). Zero Apify compute units consumed for news going forward.
+  - Added `parseRssItems()` — lightweight inline RSS XML parser, no new dependency. Extracts title, URL, pubDate, and source publisher from `<item>` blocks.
+  - Added `collectGoogleNews()` — fetches RSS, filters to last 7 days, returns `{ news_count_7d, headlines }`.
+  - Main collection loop branches on `spec.source`: direct specs `await spec.collect()`, Apify specs run the actor as before. Snapshot `source` column set to `'direct'` vs `'apify'` accordingly.
+
+- **`docs/architecture/api-integrations.md`**
+  - Added "Google News RSS" section documenting the free endpoint, stored metrics shape, and rationale for replacing the community actor.
+  - Added "Upgrading to official Meta Ads Library API" subsection under Meta Ads Library: full requirements table, endpoint, access token setup, note that Instagram Connect app and Facebook app are distinct apps, and migration path.
+  - Removed `automation-lab/google-news-scraper` from Apify actors table.
+
+### Why
+
+The community actor had uncertain maintenance and cost Apify compute units on every run. Google News RSS is the canonical public feed Google provides — free, no auth, no scraping, more stable. At 50 accounts running weekly this saves ~$2–5/month in Apify costs and eliminates the actor-availability risk that caused failures earlier.
+
+---
+
 ## [0.1.43] 2026-04-24 — Fix: collector error logging + Instagram test script
 
 ### Fixed
