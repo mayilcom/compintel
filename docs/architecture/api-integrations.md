@@ -223,11 +223,10 @@ The collector constructs a Facebook Ads Library search URL from the brand's Face
 
 **Migrated from Apify actor to direct API.** The collector now calls `graph.facebook.com/v21.0/ads_archive` directly — free, structured JSON, no compute units.
 
-**How auth works:** App access token = `FACEBOOK_APP_ID|FACEBOOK_APP_SECRET` (string concatenation). This form is valid for public data reads and never expires. No separate token generation endpoint needed. The Marketing API product is added to the existing Facebook Developer App.
+**How auth works:** System User token generated in Meta Business Suite. Non-expiring. Requires `ads_read` permission. App access tokens (`APP_ID|APP_SECRET`) do not work for `ads_archive` — Meta requires a user-scoped token.
 
-**Required env vars on Railway collector service:**
-- `FACEBOOK_APP_ID` — previously only on Vercel; now also needed on the collector
-- `FACEBOOK_APP_SECRET` — same
+**Required env var on Railway collector service:**
+- `META_SYSTEM_USER_TOKEN` — generated in Meta Business Suite → System Users → Generate Token → select app + `ads_read` permission. Never expires.
 
 **Endpoint:**
 ```
@@ -241,7 +240,7 @@ GET https://graph.facebook.com/v21.0/ads_archive
   &access_token={FACEBOOK_APP_ID}|{FACEBOOK_APP_SECRET}
 ```
 
-**Important — app separation:** `INSTAGRAM_APP_ID` / `INSTAGRAM_APP_SECRET` (Instagram Business Login) is a distinct Facebook Developer App from `FACEBOOK_APP_ID` / `FACEBOOK_APP_SECRET`. The Marketing API product belongs to the Facebook app only.
+**Important — app separation:** `INSTAGRAM_APP_ID` / `INSTAGRAM_APP_SECRET` (Instagram Business Login) is a distinct Facebook Developer App from `FACEBOOK_APP_ID` / `FACEBOOK_APP_SECRET`. The Marketing API product and System User belong to the Facebook app only.
 
 ---
 

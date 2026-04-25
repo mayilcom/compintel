@@ -64,12 +64,10 @@ function parseRssItems(xml: string): Array<{ title: string; url: string; date: s
 // Requires Marketing API product added to the Facebook Developer App.
 
 async function collectMetaAds(fbHandle: string | null, brandName: string): Promise<Record<string, unknown>> {
-  const appId     = process.env.FACEBOOK_APP_ID
-  const appSecret = process.env.FACEBOOK_APP_SECRET
-  if (!appId || !appSecret) throw new Error('FACEBOOK_APP_ID / FACEBOOK_APP_SECRET not set')
+  const accessToken = process.env.META_SYSTEM_USER_TOKEN
+  if (!accessToken) throw new Error('META_SYSTEM_USER_TOKEN not set')
 
-  const accessToken = `${appId}|${appSecret}`
-  const searchTerm  = fbHandle?.replace('@', '') ?? brandName
+  const searchTerm = fbHandle?.replace('@', '') ?? brandName
 
   const params = new URLSearchParams({
     search_terms:        searchTerm,

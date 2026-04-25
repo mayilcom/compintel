@@ -5,6 +5,20 @@ Format: `[version] YYYY-MM-DD — Description`
 
 ---
 
+## [0.1.46] 2026-04-25 — Meta Ads: switch to System User token for Ads Library API
+
+### Changed
+
+- **`apps/workers/src/workers/collector.ts`** — `collectMetaAds()` now uses `META_SYSTEM_USER_TOKEN` (Meta Business Suite system user, non-expiring) instead of the app access token format (`APP_ID|APP_SECRET`). App access tokens are rejected by `ads_archive` with error 2332004; system user tokens with `ads_read` permission work correctly.
+- **`.env.local.example`** — Added `META_SYSTEM_USER_TOKEN` placeholder. Updated section comment from "Data collection (all via Apify)" → "Data collection".
+- **`docs/architecture/api-integrations.md`** — Updated auth method description: system user token, how to generate it, why app token doesn't work for this endpoint.
+
+### Why
+
+Meta's `ads_archive` endpoint rejects app access tokens (`APP_ID|APP_SECRET`) even with Marketing API product added and app in Live mode — error code 10 / subcode 2332004. A System User token with `ads_read` is the correct auth method. System user tokens never expire, making this a true set-and-forget credential.
+
+---
+
 ## [0.1.45] 2026-04-25 — Meta Ads: replace Apify actor with official Ads Library API
 
 ### Changed
