@@ -5,6 +5,23 @@ Format: `[version] YYYY-MM-DD — Description`
 
 ---
 
+## [0.1.45] 2026-04-25 — Meta Ads: replace Apify actor with official Ads Library API
+
+### Changed
+
+- **`apps/workers/src/workers/collector.ts`**
+  - `meta_ads` migrated from `apify/facebook-ads-scraper` (Apify, paid) to a direct Meta Ads Library API call (`source: 'direct'`). Zero Apify compute units consumed for meta_ads going forward.
+  - Added `collectMetaAds(fbHandle, brandName)` — calls `graph.facebook.com/v21.0/ads_archive` with an app access token derived at runtime from `FACEBOOK_APP_ID|FACEBOOK_APP_SECRET`. No separate token generation step; app access tokens for public data reads never expire.
+  - Search strategy: uses Facebook page handle if configured in `channels.meta_ads.handle`, falls back to brand name as search term. Both hit the same `search_terms` parameter.
+  - Stored metrics shape unchanged: `{ active_ad_count, new_ads_7d, raw_ads[] }`. `raw_ads` items now include `id`, `page_name`, `created`, `body` (first creative body) from the official API fields.
+  - Requires `FACEBOOK_APP_ID` and `FACEBOOK_APP_SECRET` set on the Railway **collector** service (these were previously only needed on Vercel for user OAuth flows).
+
+### Why
+
+The `apify/facebook-ads-scraper` actor scraped the Ads Library web UI — fragile, dependent on Apify uptime, and cost compute units per run. The official `ads_archive` Graph API endpoint returns the same public data as structured JSON, free, with no rate limits at current query volume. Marketing API product was added to the existing Facebook Developer App (same app as Instagram + Facebook Login for Business).
+
+---
+
 ## [0.1.44] 2026-04-25 — Google News: replace Apify actor with free RSS feed
 
 ### Changed

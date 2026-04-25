@@ -219,38 +219,29 @@ Response is standard RSS/XML. A lightweight inline parser extracts `<item>` bloc
 
 The collector constructs a Facebook Ads Library search URL from the brand's Facebook page handle (or brand name as fallback) and passes it to the Apify actor as `startUrls`. No direct API credentials required.
 
-### Upgrading to the official Meta Ads Library API (recommended)
+### Meta Ads Library API — active (as of 2026-04-25)
 
-The [Meta Ads Library API](https://www.facebook.com/ads/library/api/) is free and returns structured JSON — more reliable than the Apify scraper and no compute-unit cost.
+**Migrated from Apify actor to direct API.** The collector now calls `graph.facebook.com/v21.0/ads_archive` directly — free, structured JSON, no compute units.
 
-**What's needed to activate it:**
+**How auth works:** App access token = `FACEBOOK_APP_ID|FACEBOOK_APP_SECRET` (string concatenation). This form is valid for public data reads and never expires. No separate token generation endpoint needed. The Marketing API product is added to the existing Facebook Developer App.
 
-| Requirement | Notes |
-|---|---|
-| Facebook Developer App | Use the existing app tied to `FACEBOOK_APP_ID` / `FACEBOOK_APP_SECRET` |
-| App access token | `GET https://graph.facebook.com/oauth/access_token?client_id={id}&client_secret={secret}&grant_type=client_credentials` — no user auth required |
-| "Ads Library" product added | In the app dashboard: **Add Product → Ads Library API** |
-| Platform Terms acceptance | One-time checkbox in the app dashboard — no review process for basic search |
-| India country code | Pass `ad_reached_countries=['IN']` in every query |
-
-**No App Review required** for the basic keyword search tier (public ads, limited fields). App Review is only needed for bulk download or advertiser-level spending data — not required for what Mayil uses.
+**Required env vars on Railway collector service:**
+- `FACEBOOK_APP_ID` — previously only on Vercel; now also needed on the collector
+- `FACEBOOK_APP_SECRET` — same
 
 **Endpoint:**
-
 ```
 GET https://graph.facebook.com/v21.0/ads_archive
-  ?search_terms={brandName}
-  &ad_reached_countries=['IN']
+  ?search_terms={brandName or fbHandle}
+  &ad_reached_countries=["IN"]
   &ad_type=ALL
   &ad_active_status=ACTIVE
-  &fields=id,ad_creation_time,ad_creative_bodies,ad_delivery_start_time,page_name
+  &fields=id,ad_creation_time,page_name,ad_creative_bodies,ad_delivery_start_time
   &limit=50
-  &access_token={app_access_token}
+  &access_token={FACEBOOK_APP_ID}|{FACEBOOK_APP_SECRET}
 ```
 
-**Important — Instagram Connect app:** The existing `INSTAGRAM_APP_ID` / `INSTAGRAM_APP_SECRET` app (Instagram Business Login) is a **separate app** from the Facebook app (`FACEBOOK_APP_ID`). The Ads Library product must be added to the **Facebook app**, not the Instagram one. These are distinct Facebook Developer Apps and cannot share the `r_dma_admin_pages_content` or `ads_library` products.
-
-**Migration path:** Replace the `meta_ads` Apify spec in `collector.ts` with a `source: 'direct'` spec that calls this endpoint using an app access token stored as `META_APP_ACCESS_TOKEN` env var on Railway.
+**Important — app separation:** `INSTAGRAM_APP_ID` / `INSTAGRAM_APP_SECRET` (Instagram Business Login) is a distinct Facebook Developer App from `FACEBOOK_APP_ID` / `FACEBOOK_APP_SECRET`. The Marketing API product belongs to the Facebook app only.
 
 ---
 

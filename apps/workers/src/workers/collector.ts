@@ -58,6 +58,59 @@ function parseRssItems(xml: string): Array<{ title: string; url: string; date: s
   return items
 }
 
+// ── Meta Ads Library API ──────────────────────────────────────
+// Official Graph API — free, no Apify compute units.
+// App access token = APP_ID|APP_SECRET (never expires for public data reads).
+// Requires Marketing API product added to the Facebook Developer App.
+
+async function collectMetaAds(fbHandle: string | null, brandName: string): Promise<Record<string, unknown>> {
+  const appId     = process.env.FACEBOOK_APP_ID
+  const appSecret = process.env.FACEBOOK_APP_SECRET
+  if (!appId || !appSecret) throw new Error('FACEBOOK_APP_ID / FACEBOOK_APP_SECRET not set')
+
+  const accessToken = `${appId}|${appSecret}`
+  const searchTerm  = fbHandle?.replace('@', '') ?? brandName
+
+  const params = new URLSearchParams({
+    search_terms:        searchTerm,
+    ad_reached_countries: '["IN"]',
+    ad_type:             'ALL',
+    ad_active_status:    'ACTIVE',
+    fields:              'id,ad_creation_time,page_name,ad_creative_bodies,ad_delivery_start_time',
+    limit:               '50',
+    access_token:        accessToken,
+  })
+
+  const res = await fetch(`https://graph.facebook.com/v21.0/ads_archive?${params}`, {
+    signal: AbortSignal.timeout(30_000),
+  })
+  if (!res.ok) {
+    const body = await res.text()
+    throw new Error(`Meta Ads Library API ${res.status}: ${body}`)
+  }
+
+  const json = await res.json() as { data: Array<Record<string, unknown>> }
+  const ads  = json.data ?? []
+
+  const cutoff = Date.now() - 7 * 24 * 3600 * 1000
+  const newThisWeek = ads.filter(a => {
+    const created = a.ad_creation_time as string | undefined
+    return created ? new Date(created).getTime() >= cutoff : false
+  }).length
+
+  return {
+    active_ad_count: ads.length,
+    new_ads_7d:      newThisWeek,
+    raw_ads: ads.slice(0, 10).map(a => ({
+      id:        a.id,
+      page_name: a.page_name,
+      created:   a.ad_creation_time,
+      body:      (a.ad_creative_bodies as string[] | undefined)?.[0] ?? null,
+    })),
+  }
+}
+
+// ── Google News RSS ───────────────────────────────────────────
 async function collectGoogleNews(query: string): Promise<Record<string, unknown>> {
   const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-IN&gl=IN&ceid=IN:en`
   const res = await fetch(rssUrl, {
@@ -104,27 +157,6 @@ const CHANNEL_SPECS: Partial<Record<Channel, ChannelSpec>> = {
     },
   },
 
-  meta_ads: {
-    source: 'apify',
-    actorId: 'apify/facebook-ads-scraper',
-    buildInput: (h, brandName) => {
-      const url = h.handle
-        ? `https://www.facebook.com/${h.handle.replace('@', '')}`
-        : `https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=IN&q=${encodeURIComponent(brandName)}&search_type=keyword_unordered`
-      return { startUrls: [{ url }], resultsLimit: 50, activeStatus: 'active' }
-    },
-    extractMetrics: (items) => {
-      const ads = items as Array<Record<string, unknown>>
-      const activeAds = ads.filter(a => a.isActive).length
-      const newThisWeek = ads.filter(a => {
-        const created = a.startDate as string | undefined
-        if (!created) return false
-        return Date.now() - new Date(created).getTime() < 7 * 24 * 3600 * 1000
-      }).length
-      return { active_ad_count: activeAds, new_ads_7d: newThisWeek, raw_ads: ads.slice(0, 10) }
-    },
-  },
-
   amazon: {
     source: 'apify',
     actorId: 'junglee/amazon-reviews-scraper',
@@ -140,6 +172,14 @@ const CHANNEL_SPECS: Partial<Record<Channel, ChannelSpec>> = {
         : null
       return { avg_rating: avgRating, review_count_7d: reviews.length, negative_reviews_7d: ratings.filter(r => r <= 2).length }
     },
+  },
+
+  // Free: Meta Ads Library API — official Graph API, no Apify compute units.
+  // App access token = FACEBOOK_APP_ID|FACEBOOK_APP_SECRET (never expires).
+  // Marketing API product must be added to the Facebook Developer App.
+  meta_ads: {
+    source: 'direct',
+    collect: async (h, brandName) => collectMetaAds(h.handle ?? null, brandName),
   },
 
   // Free: Google News RSS — no Apify compute units.
