@@ -154,6 +154,8 @@ AI-generated interpretations. One row per signal per week per account.
 
 **Indexes:** `idx_signals_account_week`, `idx_signals_brief`, `idx_signals_cluster`, `idx_signals_verification`
 
+**Unique constraint:** `(account_id, brand_id, week_start, channel)` — added in migration 010. Required for `signal-ranker` upsert.
+
 ---
 
 ### `briefs`
@@ -418,6 +420,8 @@ Per-category thresholds for signal scoring. Read by Signal Ranker worker.
 | `007_account_country.sql` | Adds `country` TEXT column to `accounts` for country-of-business (ISO code, set during onboarding) |
 | `008_rls_missing_tables.sql` | Enables RLS on `differ_results` (+ isolation policy), `ninjapear_cache` (no policy = service-role only), `competitor_suggestions` (+ isolation policy) |
 | `009_intelligence_layer.sql` | **v1.2 intelligence layer.** Adds `channel_packs` (+ seed data) + `accounts.channel_pack_key`; `signal_clusters` (synthesizer output, `parent_cluster_id` reserved for V2); `signals.claim_type` / `cluster_id` / `verification_status` / `verification_reason` / `verification_attempts`; `signal_feedback`; `signal_actions`; `briefs.lead_cluster_id` + `activity_catalog`; extends `snapshots.channel` enum with `app_store`, `google_shopping`, `email`, `twitter`, `product_hunt`, `capterra`, `trustpilot`. See ADR-013. |
+
+| `010_signals_unique_constraint.sql` | Adds `UNIQUE (account_id, brand_id, week_start, channel)` to `signals` — required for `signal-ranker` upsert. |
 
 Apply with:
 ```bash

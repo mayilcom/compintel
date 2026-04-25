@@ -5,6 +5,23 @@ Format: `[version] YYYY-MM-DD — Description`
 
 ---
 
+## [0.1.48] 2026-04-25 — Migration 010: unique constraint on signals table
+
+### Fixed
+
+- **`supabase/migrations/010_signals_unique_constraint.sql`** — Adds `UNIQUE (account_id, brand_id, week_start, channel)` constraint to the `signals` table. `signal-ranker` upserts with `onConflict: 'account_id,brand_id,week_start,channel'` but no unique index existed, causing the worker to crash with "there is no unique or exclusion constraint matching the ON CONFLICT specification". All other upsert targets (`snapshots`, `briefs`, `differ_results`, `competitor_suggestions`) already had their unique constraints.
+
+### Apply
+
+Run in Supabase dashboard → SQL editor:
+```sql
+ALTER TABLE signals
+  ADD CONSTRAINT signals_account_brand_week_channel_key
+  UNIQUE (account_id, brand_id, week_start, channel);
+```
+
+---
+
 ## [0.1.47] 2026-04-25 — Fix: proper error serialization across all workers
 
 ### Fixed
