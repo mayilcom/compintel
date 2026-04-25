@@ -1,21 +1,21 @@
-/**
- * signal-ranker.ts — Stage 3 of 6
+﻿/**
+ * signal-ranker.ts â€” Stage 3 of 6
  *
  * Schedule: Sunday 3am IST (cron: 30 21 * * 6 UTC)
  *
  * Reads differ_results for this week, scores each delta against
  * category thresholds (from category_config table), assigns a
- * signal_type and score 1–100, and writes rows to the signals table.
+ * signal_type and score 1â€“100, and writes rows to the signals table.
  *
- * Score → brief treatment (PRD §9):
- *   80–100  lead signal (brief headline candidate)
- *   50–79   supporting signal
- *   20–49   mentioned if space allows
+ * Score â†’ brief treatment (PRD Â§9):
+ *   80â€“100  lead signal (brief headline candidate)
+ *   50â€“79   supporting signal
+ *   20â€“49   mentioned if space allows
  *   <20     filtered out
  */
 
 import { db } from '../lib/supabase'
-import { makeLogger } from '../lib/logger'
+import { makeLogger, serializeError } from '../lib/logger'
 import type { SignalType, CategoryConfig } from '../lib/types'
 
 const log = makeLogger('signal-ranker')
@@ -27,7 +27,7 @@ function currentWeekStart(): string {
   return d.toISOString().slice(0, 10)
 }
 
-// ── Scoring logic ─────────────────────────────────────────────
+// â”€â”€ Scoring logic â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface ScoredSignal {
   account_id:    string
@@ -122,12 +122,12 @@ function scoreMetaAds(row: DifferRow, cfg: CategoryConfig): ScoredSignal | null 
     }
   }
 
-  // Campaign pulled — competitor went silent on paid
+  // Campaign pulled â€” competitor went silent on paid
   if (prevActive > 2 && active === 0) {
     return {
       account_id: row.account_id, brand_id: row.brand_id, week_start: row.week_start,
       signal_type: 'opportunity', channel: 'meta_ads', score: 55,
-      headline: `${row.brand_name} has stopped all Meta Ads — ${prevActive} active ads dropped to 0.`,
+      headline: `${row.brand_name} has stopped all Meta Ads â€” ${prevActive} active ads dropped to 0.`,
       data_points: [{ metric: 'active_ad_count', prev: prevActive, current: 0 }],
       confidence: 0.85,
     }
@@ -146,7 +146,7 @@ function scoreAmazon(row: DifferRow, _cfg: CategoryConfig): ScoredSignal | null 
     return {
       account_id: row.account_id, brand_id: row.brand_id, week_start: row.week_start,
       signal_type: 'opportunity', channel: 'amazon', score,
-      headline: `${row.brand_name}'s Amazon rating dropped to ${rating}★ (${Math.abs(ratingDelta)}% decline).`,
+      headline: `${row.brand_name}'s Amazon rating dropped to ${rating}â˜… (${Math.abs(ratingDelta)}% decline).`,
       data_points: [
         { metric: 'avg_rating', current: rating, delta_pct: ratingDelta },
         { metric: 'negative_reviews_7d', value: negReviews },
@@ -189,7 +189,7 @@ const CHANNEL_SCORERS: Record<string, (row: DifferRow, cfg: CategoryConfig) => S
   news:      scoreNews,
 }
 
-// ── Main ──────────────────────────────────────────────────────
+// â”€â”€ Main â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async function run() {
   const weekStart = currentWeekStart()
@@ -229,7 +229,7 @@ async function run() {
   log.info('signals scored', { count: signals.length, above80: signals.filter(s => s.score >= 80).length })
 
   if (signals.length === 0) {
-    log.warn('no signals above threshold — briefs will have no signals this week')
+    log.warn('no signals above threshold â€” briefs will have no signals this week')
     return
   }
 
@@ -261,6 +261,7 @@ async function run() {
 }
 
 run().catch(err => {
-  log.error('fatal', { error: String(err) })
+  log.error('fatal', { error: serializeError(err) })
   process.exit(1)
 })
+

@@ -1,5 +1,5 @@
-/**
- * differ.ts — Stage 2 of 6
+﻿/**
+ * differ.ts â€” Stage 2 of 6
  *
  * Schedule: Sunday 2am IST (cron: 30 20 * * 6 UTC)
  *
@@ -12,7 +12,7 @@
  */
 
 import { db } from '../lib/supabase'
-import { makeLogger } from '../lib/logger'
+import { makeLogger, serializeError } from '../lib/logger'
 import type { MetricDelta, Channel } from '../lib/types'
 
 const log = makeLogger('differ')
@@ -23,7 +23,7 @@ function prevWeekStart(weekStart: string): string {
   return d.toISOString().slice(0, 10)
 }
 
-/** Compute % change: (current - prev) / |prev| × 100. Null if prev is 0 or missing. */
+/** Compute % change: (current - prev) / |prev| Ã— 100. Null if prev is 0 or missing. */
 function pctChange(current: number | null, prev: number | null): number | null {
   if (current == null || prev == null || prev === 0) return null
   return Math.round(((current - prev) / Math.abs(prev)) * 100)
@@ -139,6 +139,7 @@ async function run() {
 }
 
 run().catch(err => {
-  log.error('fatal', { error: String(err) })
+  log.error('fatal', { error: serializeError(err) })
   process.exit(1)
 })
+

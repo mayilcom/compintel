@@ -1,5 +1,5 @@
-/**
- * brief-assembler.ts — Stage 6 of 8 (v1.2)
+﻿/**
+ * brief-assembler.ts â€” Stage 6 of 8 (v1.2)
  *
  * Schedule: Sunday 4am IST (cron: 30 22 * * 6 UTC)
  * Position: between verifier (stage 5) and delivery (stage 7)
@@ -7,17 +7,17 @@
  * For each active account, reads VERIFIED signals and the lead cluster
  * for the week, structures the brief as:
  *
- *   [Lead Story]           — the cluster with is_lead_story = true
- *   [Supporting Evidence]  — signals in the lead cluster (other than the top)
- *   [This Week's Activity] — verified signals NOT in the lead cluster, as a compact catalog
- *   [Closing Question]     — only when a lead story exists
+ *   [Lead Story]           â€” the cluster with is_lead_story = true
+ *   [Supporting Evidence]  â€” signals in the lead cluster (other than the top)
+ *   [This Week's Activity] â€” verified signals NOT in the lead cluster, as a compact catalog
+ *   [Closing Question]     â€” only when a lead story exists
  *
  * On quiet weeks (no lead cluster), the brief ships with just the
- * activity catalog — no manufactured narrative. Honest quiet weeks
+ * activity catalog â€” no manufactured narrative. Honest quiet weeks
  * are a V1.2 principle (see ADR-013).
  *
  * Brief #1 for any account is still treated as a baseline brief
- * (is_baseline = true) — no delta language in the narrative.
+ * (is_baseline = true) â€” no delta language in the narrative.
  *
  * Email template redesign for the new structure is a separate
  * implementation step; V1.2 assembler populates the DB columns
@@ -30,7 +30,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { render } from '@react-email/render'
 import { db } from '../lib/supabase'
-import { makeLogger } from '../lib/logger'
+import { makeLogger, serializeError } from '../lib/logger'
 import { BriefFull, BriefChannelFocus, BriefExecutiveDigest } from '@mayil/emails'
 import type { SignalData } from '@mayil/emails'
 import { unsubscribeUrl } from '../lib/unsubscribe'
@@ -53,10 +53,10 @@ function weekRange(weekStart: string): string {
   const end   = new Date(weekStart)
   end.setUTCDate(end.getUTCDate() + 6)
   const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' }
-  return `${start.toLocaleDateString('en-IN', opts)}–${end.toLocaleDateString('en-IN', { day: 'numeric', year: 'numeric' })}`
+  return `${start.toLocaleDateString('en-IN', opts)}â€“${end.toLocaleDateString('en-IN', { day: 'numeric', year: 'numeric' })}`
 }
 
-// ── Claude: headline + closing question ───────────────────────
+// â”€â”€ Claude: headline + closing question â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async function generateBriefNarrative(
   signals: SignalData[],
@@ -68,15 +68,15 @@ async function generateBriefNarrative(
   ).join('\n')
 
   const prompt = isBaseline
-    ? `This is the first competitive brief for ${clientBrand}. There is no prior-week comparison yet — this brief establishes their baseline.
+    ? `This is the first competitive brief for ${clientBrand}. There is no prior-week comparison yet â€” this brief establishes their baseline.
 
 Signals observed this week:
 ${signalSummary}
 
 Write:
 HEADLINE: A single sentence (max 120 chars) that orients ${clientBrand} to what the competitive landscape looks like this week. No delta language ("up", "spike") since there's no prior week.
-SUMMARY: 2–3 sentences summarising what was observed across competitors this week.
-CLOSING: An orientation question for ${clientBrand} — not a delta question, but something like "As you start tracking competitors, what's the one channel you're most under-indexed on vs. your top 3 rivals?"`
+SUMMARY: 2â€“3 sentences summarising what was observed across competitors this week.
+CLOSING: An orientation question for ${clientBrand} â€” not a delta question, but something like "As you start tracking competitors, what's the one channel you're most under-indexed on vs. your top 3 rivals?"`
     : `You are writing the headline and closing question for a competitive intelligence brief for ${clientBrand}.
 
 Top signals this week:
@@ -84,8 +84,8 @@ ${signalSummary}
 
 Write:
 HEADLINE: One sentence (max 120 chars) that captures the most important competitive development this week for ${clientBrand}. Must contain a specific brand name and data point.
-SUMMARY: 2–3 sentences synthesising what the top signals mean together for ${clientBrand} this week.
-CLOSING: A single strategic question that synthesises the top 2–3 signals into a provocation ${clientBrand} should be asking before this week starts. Not a summary — a question that creates urgency or reveals a decision.`
+SUMMARY: 2â€“3 sentences synthesising what the top signals mean together for ${clientBrand} this week.
+CLOSING: A single strategic question that synthesises the top 2â€“3 signals into a provocation ${clientBrand} should be asking before this week starts. Not a summary â€” a question that creates urgency or reveals a decision.`
 
   try {
     const response = await client.messages.create({
@@ -102,7 +102,7 @@ CLOSING: A single strategic question that synthesises the top 2–3 signals into
 
     return { headline, summary, closingQuestion }
   } catch (err) {
-    log.error('narrative generation failed', { error: String(err) })
+    log.error('narrative generation failed', { error: serializeError(err) })
     return {
       headline: signals[0]?.headline ?? 'Competitive signals this week',
       summary: `${signals.length} signal${signals.length !== 1 ? 's' : ''} detected across your tracked competitors this week.`,
@@ -111,7 +111,7 @@ CLOSING: A single strategic question that synthesises the top 2–3 signals into
   }
 }
 
-// ── Signal → email shape ──────────────────────────────────────
+// â”€â”€ Signal â†’ email shape â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function toEmailSignal(
   row: Record<string, unknown>,
@@ -136,7 +136,7 @@ function toEmailSignal(
   }
 }
 
-// ── Main ──────────────────────────────────────────────────────
+// â”€â”€ Main â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async function run() {
   const weekStart = currentWeekStart()
@@ -160,7 +160,7 @@ async function run() {
 
     try {
       // Load VERIFIED signals for this account (v1.2). Legacy briefs
-      // before v1.2 may have verification_status = 'pending' — include
+      // before v1.2 may have verification_status = 'pending' â€” include
       // those by accepting 'verified' OR 'pending' (for backfilled rows).
       const { data: allSignals, error: sigErr } = await db
         .from('signals')
@@ -203,11 +203,11 @@ async function run() {
 
       // Quiet week: no lead cluster AND too few signals to justify a brief.
       if (!leadCluster && signals.length === 0) {
-        log.warn('no signals for account — skipping brief', { account_id: accountId })
+        log.warn('no signals for account â€” skipping brief', { account_id: accountId })
         continue
       }
       if (!leadCluster) {
-        log.info('quiet week — no lead story, activity catalog only', {
+        log.info('quiet week â€” no lead story, activity catalog only', {
           account_id: accountId, catalog_count: activityCatalog.length,
         })
       }
@@ -254,7 +254,7 @@ async function run() {
 
       // Generate narrative. If a lead cluster exists, anchor the headline
       // to the cluster label; otherwise ship a quiet-week summary with no
-      // closing question (honest quiet week — see ADR-013).
+      // closing question (honest quiet week â€” see ADR-013).
       const narrativeInput: SignalData[] = emailSignals.length > 0
         ? emailSignals
         : activityCatalog.slice(0, 3).map(c => ({
@@ -269,14 +269,14 @@ async function run() {
       const { headline, summary, closingQuestion } = leadCluster
         ? await generateBriefNarrative(narrativeInput, clientBrand, isBaseline)
         : {
-            headline: `This week's activity — ${activityCatalog.length} surface movement${activityCatalog.length !== 1 ? 's' : ''} tracked`,
+            headline: `This week's activity â€” ${activityCatalog.length} surface movement${activityCatalog.length !== 1 ? 's' : ''} tracked`,
             summary:  `No coordinated story surfaced this week. The catalog below lists verified competitor activity across your tracked channels.`,
             closingQuestion: '',
           }
 
       // Subject line
       const topSignal = signals[0] as Record<string, unknown>
-      const subjectLine = `${clientBrand} · Brief #${issueNumber} — ${headline.slice(0, 60)}${headline.length > 60 ? '…' : ''}`
+      const subjectLine = `${clientBrand} Â· Brief #${issueNumber} â€” ${headline.slice(0, 60)}${headline.length > 60 ? 'â€¦' : ''}`
       const previewText = summary.slice(0, 140)
 
       const briefId  = crypto.randomUUID()
@@ -304,7 +304,7 @@ async function run() {
         unsubscribeUrl: unsubscribeUrl('__RECIPIENT_ID__', APP_URL),
       }))
 
-      // Render per-variant HTML map (recipient_id → html)
+      // Render per-variant HTML map (recipient_id â†’ html)
       const variantHtmlMap = new Map<string, string>()
       for (const r of (recipients ?? []) as Array<Record<string, unknown>>) {
         const recipientId = r.recipient_id as string
@@ -382,7 +382,7 @@ async function run() {
       })
 
     } catch (err) {
-      log.error('assembly failed', { account_id: accountId, error: String(err) })
+      log.error('assembly failed', { account_id: accountId, error: serializeError(err) })
 
       // Mark as failed so admin can see it
       await db.from('briefs').upsert({
@@ -399,6 +399,7 @@ async function run() {
 }
 
 run().catch(err => {
-  log.error('fatal', { error: String(err) })
+  log.error('fatal', { error: serializeError(err) })
   process.exit(1)
 })
+

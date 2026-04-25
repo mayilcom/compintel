@@ -1,5 +1,5 @@
-/**
- * ai-interpreter.ts — Stage 4 of 8 (v1.2)
+﻿/**
+ * ai-interpreter.ts â€” Stage 4 of 8 (v1.2)
  *
  * Schedule: Sunday 2am IST (cron: 30 20 * * 6 UTC)
  * Position: between synthesizer (stage 3.5) and verifier (stage 5)
@@ -28,7 +28,7 @@
 
 import Anthropic from '@anthropic-ai/sdk'
 import { db } from '../lib/supabase'
-import { makeLogger } from '../lib/logger'
+import { makeLogger, serializeError } from '../lib/logger'
 import type { ClaimType } from '../lib/types'
 
 const log    = makeLogger('ai-interpreter')
@@ -41,18 +41,18 @@ function currentWeekStart(): string {
   return d.toISOString().slice(0, 10)
 }
 
-// ── System prompt (cached — counts once per batch) ────────────
+// â”€â”€ System prompt (cached â€” counts once per batch) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const SYSTEM_PROMPT = `You are a competitive intelligence analyst writing weekly briefs for consumer brand and B2B SaaS founders and marketing heads.
 
 For each signal you receive, produce four outputs:
 
-HEADLINE: One sentence, max 120 characters. Must contain a specific number or data point that appears in the raw data. No vague language. Example: "Britannia posted 14 times in 4 days — 178% above their 4-week average."
+HEADLINE: One sentence, max 120 characters. Must contain a specific number or data point that appears in the raw data. No vague language. Example: "Britannia posted 14 times in 4 days â€” 178% above their 4-week average."
 
-BODY: 2–3 sentences. Must cite the data that produced the signal. Must name the competitor. Must state what channel. Be specific and direct.
+BODY: 2â€“3 sentences. Must cite the data that produced the signal. Must name the competitor. Must state what channel. Be specific and direct.
 
-IMPLICATION: 1–2 sentences. Must name the client's brand specifically (it will be provided to you). Must say what to do or watch — not just what happened. Be actionable.
+IMPLICATION: 1â€“2 sentences. Must name the client's brand specifically (it will be provided to you). Must say what to do or watch â€” not just what happened. Be actionable.
 
-CLAIM_TYPE: One of fact / pattern / implication — the dominant character of your HEADLINE.
+CLAIM_TYPE: One of fact / pattern / implication â€” the dominant character of your HEADLINE.
   - fact     = a single verifiable number or event ("launched 14 new ads")
   - pattern  = a trend or cross-channel coordination ("sustained push across Meta + YouTube")
   - implication = a strategic read without a single hard number
@@ -61,8 +61,8 @@ Hard rules:
 - NEVER make predictions or future-tense claims ("will", "likely", "may", "could", "expected to"). Only describe what has happened.
 - NEVER use hedging language ("it seems", "might", "possibly").
 - Every number in HEADLINE and BODY must trace back to a data_point you were given. Do not invent figures.
-- The IMPLICATION must name the client brand by name — not "you" or "your brand".
-- Keep total word count tight — this is a brief, not a report.`
+- The IMPLICATION must name the client brand by name â€” not "you" or "your brand".
+- Keep total word count tight â€” this is a brief, not a report.`
 
 interface SignalRow {
   signal_id:   string
@@ -72,7 +72,7 @@ interface SignalRow {
   channel:     string
   headline:    string
   data_points: unknown[]
-  // v1.2 — cluster context + retry support
+  // v1.2 â€” cluster context + retry support
   cluster_id:            string | null
   verification_status:   string
   verification_reason:   string | null
@@ -93,7 +93,7 @@ interface AIOutput {
   claim_type:  ClaimType
 }
 
-// v1.2 — cluster context passed to the prompt so the writer can reference
+// v1.2 â€” cluster context passed to the prompt so the writer can reference
 // the broader story, not just the isolated signal.
 interface ClusterContext {
   cluster_type: string
@@ -168,13 +168,13 @@ CLAIM_TYPE: <fact|pattern|implication>`
 
     // Enforce headline length limit
     const clampedHeadline = headline.length > 120
-      ? headline.slice(0, 117) + '…'
+      ? headline.slice(0, 117) + 'â€¦'
       : headline
 
     const claim_type = (claimRaw === 'pattern' || claimRaw === 'implication' ? claimRaw : 'fact') as ClaimType
     return { headline: clampedHeadline, body, implication, claim_type }
   } catch (err) {
-    log.error('claude call failed', { signal_id: signal.signal_id, error: String(err) })
+    log.error('claude call failed', { signal_id: signal.signal_id, error: serializeError(err) })
     return null
   }
 }
@@ -183,12 +183,12 @@ async function run() {
   const weekStart = currentWeekStart()
   const weekEnd   = new Date(weekStart)
   weekEnd.setUTCDate(weekEnd.getUTCDate() + 6)
-  const weekRange = `${new Date(weekStart).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}–${weekEnd.toLocaleDateString('en-IN', { day: 'numeric', year: 'numeric' })}`
+  const weekRange = `${new Date(weekStart).toLocaleDateString('en-IN', { month: 'short', day: 'numeric' })}â€“${weekEnd.toLocaleDateString('en-IN', { day: 'numeric', year: 'numeric' })}`
 
   log.info('starting', { weekStart, weekRange })
 
   // Load signals with their brand + account + cluster context.
-  // v1.2: include verification_status — picks up first-pass signals (pending)
+  // v1.2: include verification_status â€” picks up first-pass signals (pending)
   // AND retried signals (verifier rejected and asked for a rewrite).
   const { data: signals, error: sigErr } = await db
     .from('signals')
@@ -276,16 +276,17 @@ async function run() {
       }
     } else {
       failed++
-      // Signal stays as rule_based — verifier will accept it as-is.
+      // Signal stays as rule_based â€” verifier will accept it as-is.
     }
   }
 
   const failRate = signals.length > 0 ? failed / signals.length : 0
   log.info('done', { updated, failed, fail_rate: `${Math.round(failRate * 100)}%` })
-  if (failRate > 0.05) log.warn('AI failure rate above 5% — review model health')
+  if (failRate > 0.05) log.warn('AI failure rate above 5% â€” review model health')
 }
 
 run().catch(err => {
-  log.error('fatal', { error: String(err) })
+  log.error('fatal', { error: serializeError(err) })
   process.exit(1)
 })
+

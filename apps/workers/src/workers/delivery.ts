@@ -1,18 +1,18 @@
-/**
- * delivery.ts — Stage 6 of 6
+﻿/**
+ * delivery.ts â€” Stage 6 of 6
  *
  * Schedule: Sunday 7am IST (cron: 30 1 * * 0 UTC)
  *
  * Sends the assembled brief to all active recipients for each account.
  * Only processes briefs with status = 'assembled' (held briefs are skipped).
- * After sending, flips brief.status → 'sent' and sets sent_at.
+ * After sending, flips brief.status â†’ 'sent' and sets sent_at.
  * If the account is on trial and this is their first brief, sets
  * accounts.trial_brief_sent = true.
  */
 
 import { Resend } from 'resend'
 import { db } from '../lib/supabase'
-import { makeLogger } from '../lib/logger'
+import { makeLogger, serializeError } from '../lib/logger'
 
 const log    = makeLogger('delivery')
 const resend = new Resend(process.env.RESEND_API_KEY)
@@ -44,8 +44,8 @@ async function run() {
   let skipped = 0
   let failed  = 0
 
-  // ── Bulk-fetch accounts and recipients before the loop ────────
-  // Avoids N+1: 2 queries for all accounts instead of 2×N queries
+  // â”€â”€ Bulk-fetch accounts and recipients before the loop â”€â”€â”€â”€â”€â”€â”€â”€
+  // Avoids N+1: 2 queries for all accounts instead of 2Ã—N queries
   const accountIds = (briefs as Array<Record<string, unknown>>).map(b => b.account_id as string)
 
   const { data: accountRows } = await db
@@ -95,7 +95,7 @@ async function run() {
 
     // Trial accounts: only send if trial_brief_sent is false
     if (acc.plan === 'trial' && acc.trial_brief_sent) {
-      log.info('trial brief already sent — skipping', { account_id: accountId })
+      log.info('trial brief already sent â€” skipping', { account_id: accountId })
       skipped++
       continue
     }
@@ -149,7 +149,7 @@ async function run() {
           sent++
         }
       } catch (err) {
-        log.error('send exception', { recipient_id: recipientId, error: String(err) })
+        log.error('send exception', { recipient_id: recipientId, error: serializeError(err) })
         accountSendFailed = true
       }
     }
@@ -176,11 +176,12 @@ async function run() {
   log.info('done', { sent, skipped, failed })
 
   if (failed > 0) {
-    log.warn(`${failed} brief(s) failed delivery — check Resend dashboard and brief status`)
+    log.warn(`${failed} brief(s) failed delivery â€” check Resend dashboard and brief status`)
   }
 }
 
 run().catch(err => {
-  log.error('fatal', { error: String(err) })
+  log.error('fatal', { error: serializeError(err) })
   process.exit(1)
 })
+

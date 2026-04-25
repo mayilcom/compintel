@@ -1,5 +1,5 @@
-/**
- * synthesizer.ts — Stage 3.5 of 8 (v1.2)
+﻿/**
+ * synthesizer.ts â€” Stage 3.5 of 8 (v1.2)
  *
  * Schedule: Sunday 1am IST (cron: 30 19 * * 6 UTC)
  * Position: between signal-ranker (stage 3) and ai-interpreter (stage 4)
@@ -10,10 +10,10 @@
  * V2 cross-week story arc chaining.
  *
  * Rule-based clustering (V1):
- *   - Silence-type signals → standalone silence cluster (silence is the story)
- *   - 2+ trend signals for the same brand → trend cluster
- *   - 2+ non-silence signals for the same brand → coordinated_campaign cluster
- *   - Anything else → single_signal cluster (pass-through)
+ *   - Silence-type signals â†’ standalone silence cluster (silence is the story)
+ *   - 2+ trend signals for the same brand â†’ trend cluster
+ *   - 2+ non-silence signals for the same brand â†’ coordinated_campaign cluster
+ *   - Anything else â†’ single_signal cluster (pass-through)
  *
  * Lead story selection (one per account per week):
  *   - Prefer coordinated_campaign clusters by score
@@ -21,13 +21,13 @@
  *   - Then trend clusters (score >= 70)
  *   - Then single_signal clusters ONLY if score >= 80
  *   - If nothing qualifies: no lead story this week. Brief ships with
- *     activity catalog only. (Honest quiet weeks — see ADR-013.)
+ *     activity catalog only. (Honest quiet weeks â€” see ADR-013.)
  *
  * See: docs/decisions/ADR-013-intelligence-layer-v1.md
  */
 
 import { db } from '../lib/supabase'
-import { makeLogger } from '../lib/logger'
+import { makeLogger, serializeError } from '../lib/logger'
 import type { ClusterType, SignalType } from '../lib/types'
 
 const log = makeLogger('synthesizer')
@@ -39,7 +39,7 @@ function currentWeekStart(): string {
   return d.toISOString().slice(0, 10)
 }
 
-// Signal shape we read from the DB (subset — ranker has just written them).
+// Signal shape we read from the DB (subset â€” ranker has just written them).
 interface SignalRow {
   signal_id:    string
   account_id:   string
@@ -65,7 +65,7 @@ interface DraftCluster {
   is_lead_story: boolean
 }
 
-// ── Clustering rules ─────────────────────────────────────────
+// â”€â”€ Clustering rules â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function clusterBrandWeek(signals: SignalRow[]): DraftCluster[] {
   if (signals.length === 0) return []
@@ -92,7 +92,7 @@ function clusterBrandWeek(signals: SignalRow[]): DraftCluster[] {
   const unassigned = new Set(signals.map(s => s.signal_id))
   const byId = new Map(signals.map(s => [s.signal_id, s]))
 
-  // 1. Silence signals — each stands alone.
+  // 1. Silence signals â€” each stands alone.
   for (const s of signals) {
     if (s.signal_type === 'silence') {
       clusters.push(make('silence', `${brandName} silence`, [s]))
@@ -100,7 +100,7 @@ function clusterBrandWeek(signals: SignalRow[]): DraftCluster[] {
     }
   }
 
-  // 2. Trend signals — group if 2+ remaining trends for this brand.
+  // 2. Trend signals â€” group if 2+ remaining trends for this brand.
   const trends = [...unassigned]
     .map(id => byId.get(id)!)
     .filter(s => s.signal_type === 'trend')
@@ -109,26 +109,26 @@ function clusterBrandWeek(signals: SignalRow[]): DraftCluster[] {
     trends.forEach(s => unassigned.delete(s.signal_id))
   }
 
-  // 3. Remaining 2+ signals on the same brand → coordinated campaign.
+  // 3. Remaining 2+ signals on the same brand â†’ coordinated campaign.
   const rest = [...unassigned].map(id => byId.get(id)!)
   if (rest.length >= 2) {
-    clusters.push(make('coordinated_campaign', `${brandName} — coordinated activity`, rest))
+    clusters.push(make('coordinated_campaign', `${brandName} â€” coordinated activity`, rest))
     rest.forEach(s => unassigned.delete(s.signal_id))
   }
 
-  // 4. Anything left → pass-through single_signal clusters.
+  // 4. Anything left â†’ pass-through single_signal clusters.
   for (const id of unassigned) {
     const s = byId.get(id)!
-    clusters.push(make('single_signal', `${brandName} — ${s.channel}`, [s]))
+    clusters.push(make('single_signal', `${brandName} â€” ${s.channel}`, [s]))
   }
 
   return clusters
 }
 
-// ── Lead story selection (one per account per week) ─────────
+// â”€â”€ Lead story selection (one per account per week) â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function pickLeadStory(clusters: DraftCluster[]): void {
-  // Priority tiers — first non-empty tier that has candidates wins.
+  // Priority tiers â€” first non-empty tier that has candidates wins.
   const tiers: Array<{ match: (c: DraftCluster) => boolean; minScore: number }> = [
     { match: c => c.cluster_type === 'coordinated_campaign',             minScore: 0  },
     { match: c => c.cluster_type === 'silence',                           minScore: 70 },
@@ -143,10 +143,10 @@ function pickLeadStory(clusters: DraftCluster[]): void {
     lead.is_lead_story = true
     return
   }
-  // No lead story this week — honest quiet week. Brief ships with catalog only.
+  // No lead story this week â€” honest quiet week. Brief ships with catalog only.
 }
 
-// ── Main ─────────────────────────────────────────────────────
+// â”€â”€ Main â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async function run() {
   const weekStart = currentWeekStart()
@@ -167,11 +167,11 @@ async function run() {
   log.info('signals loaded', { count: signals.length })
 
   if (signals.length === 0) {
-    log.warn('no signals to cluster — exiting')
+    log.warn('no signals to cluster â€” exiting')
     return
   }
 
-  // Group by (account_id, brand_id) — intra-week clustering happens per brand.
+  // Group by (account_id, brand_id) â€” intra-week clustering happens per brand.
   const groups = new Map<string, SignalRow[]>()
   for (const s of signals) {
     const key = `${s.account_id}::${s.brand_id}`
@@ -205,7 +205,7 @@ async function run() {
   log.info('clusters formed', { total: allClusters.length, leads: leadCount, ...byType })
 
   if (allClusters.length === 0) {
-    log.info('done — no clusters to write')
+    log.info('done â€” no clusters to write')
     return
   }
 
@@ -248,6 +248,7 @@ async function run() {
 }
 
 run().catch(err => {
-  log.error('fatal', { error: String(err) })
+  log.error('fatal', { error: serializeError(err) })
   process.exit(1)
 })
+

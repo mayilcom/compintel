@@ -5,6 +5,19 @@ Format: `[version] YYYY-MM-DD — Description`
 
 ---
 
+## [0.1.47] 2026-04-25 — Fix: proper error serialization across all workers
+
+### Fixed
+
+- **`apps/workers/src/lib/logger.ts`** — Added `serializeError(err: unknown): string` export. Handles `Error` instances (`.message`), plain objects with a `.message` property (Supabase/Apify errors), and falls back to `JSON.stringify`. `String(err)` on a plain object returns `[object Object]` — this replaces every instance.
+- **All 9 workers** — Replaced all 15 `String(err)` occurrences with `serializeError(err)`: `collector`, `differ`, `signal-ranker`, `ai-interpreter`, `synthesizer`, `verifier`, `brief-assembler`, `delivery`, `enrichment`. Every fatal catch and inline error log now shows the actual error message.
+
+### Why
+
+`signal-ranker` crashed with `error [object Object]` — Supabase errors are plain objects, not `Error` instances, so `String(err)` loses the message. The same pattern was present in all other workers, making any DB or network failure undiagnosable from Railway logs.
+
+---
+
 ## [0.1.46] 2026-04-25 — Meta Ads: switch to System User token for Ads Library API
 
 ### Changed

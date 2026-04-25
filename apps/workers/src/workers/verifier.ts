@@ -1,5 +1,5 @@
-/**
- * verifier.ts — Stage 5 of 8 (v1.2)
+﻿/**
+ * verifier.ts â€” Stage 5 of 8 (v1.2)
  *
  * Schedule: Sunday 3am IST (cron: 30 21 * * 6 UTC)
  * Position: between ai-interpreter (stage 4) and brief-assembler (stage 6)
@@ -10,15 +10,15 @@
  * keeps "source of truth" honest.
  *
  * Rules:
- *   - claim_type='prediction'         → hard reject. Predictions are out of V1 scope.
- *   - claim_type='fact'               → 100% verifiable from data_points. Reject on any mismatch.
- *   - claim_type='pattern'            → supported by ≥2 signals OR by aggregated data_points.
- *   - claim_type='implication'        → not verified (best-effort, rendered as interpretation).
+ *   - claim_type='prediction'         â†’ hard reject. Predictions are out of V1 scope.
+ *   - claim_type='fact'               â†’ 100% verifiable from data_points. Reject on any mismatch.
+ *   - claim_type='pattern'            â†’ supported by â‰¥2 signals OR by aggregated data_points.
+ *   - claim_type='implication'        â†’ not verified (best-effort, rendered as interpretation).
  *
  * Hybrid retry-then-drop (ADR-013):
- *   1. First verifier failure → re-prompt ai-interpreter with the verifier reason,
+ *   1. First verifier failure â†’ re-prompt ai-interpreter with the verifier reason,
  *      regenerate the signal copy. Mark verification_status='retried' in between.
- *   2. Second failure → drop silently (selected_for_brief=false, verification_status='dropped'),
+ *   2. Second failure â†’ drop silently (selected_for_brief=false, verification_status='dropped'),
  *      log to admin dashboard queue.
  *
  * Uses Claude Haiku for cost (~$0.001/signal). Falls back to "skip verification"
@@ -30,13 +30,13 @@
 
 import Anthropic from '@anthropic-ai/sdk'
 import { db } from '../lib/supabase'
-import { makeLogger } from '../lib/logger'
+import { makeLogger, serializeError } from '../lib/logger'
 import type { ClaimType, VerificationStatus } from '../lib/types'
 
 const log    = makeLogger('verifier')
 const client = new Anthropic()
 
-// Small model — verifier is a yes/no judgment, doesn't need Sonnet.
+// Small model â€” verifier is a yes/no judgment, doesn't need Sonnet.
 const VERIFIER_MODEL = 'claude-haiku-4-5-20251001'
 
 function currentWeekStart(): string {
@@ -120,7 +120,7 @@ Verdict?`
     }
     return { pass: verdict === 'pass', reason }
   } catch (err) {
-    log.error('verifier call failed', { error: String(err) })
+    log.error('verifier call failed', { error: serializeError(err) })
     return null
   }
 }
@@ -141,7 +141,7 @@ async function verifySignal(signal: SignalRow): Promise<{
     return { status: 'dropped', reason: 'claim contains future-tense/hedge language', should_drop: true }
   }
 
-  // Implications are not factually verified — they're interpretation by design.
+  // Implications are not factually verified â€” they're interpretation by design.
   if (signal.claim_type === 'implication') {
     return { status: 'verified', reason: null, should_drop: false }
   }
@@ -149,7 +149,7 @@ async function verifySignal(signal: SignalRow): Promise<{
   // Facts and patterns go through the LLM verifier.
   const verdict = await verifyClaim(signal.headline, signal.data_points)
 
-  // Verifier call itself failed — don't drop the signal over infra issues.
+  // Verifier call itself failed â€” don't drop the signal over infra issues.
   // Mark verified with a reason so admin can spot it.
   if (verdict === null) {
     return { status: 'verified', reason: 'verifier skipped (API failure)', should_drop: false }
@@ -159,21 +159,21 @@ async function verifySignal(signal: SignalRow): Promise<{
     return { status: 'verified', reason: null, should_drop: false }
   }
 
-  // First failure → retry, second → drop.
+  // First failure â†’ retry, second â†’ drop.
   if (signal.verification_attempts === 0) {
     return { status: 'retried', reason: verdict.reason, should_drop: false }
   }
   return { status: 'dropped', reason: verdict.reason, should_drop: true }
 }
 
-// ── Main ─────────────────────────────────────────────────────
+// â”€â”€ Main â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async function run() {
   const weekStart = currentWeekStart()
   log.info('starting', { weekStart })
 
   // Load signals that are candidates for this week's brief.
-  // On a retry pass, verification_status will be 'retried' — pick those up too.
+  // On a retry pass, verification_status will be 'retried' â€” pick those up too.
   const { data: rows, error } = await db
     .from('signals')
     .select('signal_id, headline, body, implication, claim_type, data_points, verification_status, verification_attempts')
@@ -186,7 +186,7 @@ async function run() {
   log.info('signals to verify', { count: signals.length })
 
   if (signals.length === 0) {
-    log.info('nothing to verify — exiting')
+    log.info('nothing to verify â€” exiting')
     return
   }
 
@@ -240,6 +240,7 @@ async function run() {
 }
 
 run().catch(err => {
-  log.error('fatal', { error: String(err) })
+  log.error('fatal', { error: serializeError(err) })
   process.exit(1)
 })
+

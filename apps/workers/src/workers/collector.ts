@@ -1,16 +1,16 @@
-/**
- * collector.ts — Stage 1 of 6
+﻿/**
+ * collector.ts â€” Stage 1 of 6
  *
  * Schedule: Saturday 11pm IST (cron: 30 17 * * 6 UTC)
  *
  * For every active account with completed onboarding, runs Apify actors
- * to collect a fresh snapshot for each brand × channel combination.
+ * to collect a fresh snapshot for each brand Ã— channel combination.
  * Writes results to the snapshots table. Skips paused/locked accounts.
  */
 
 import { ApifyClient } from 'apify-client'
 import { db } from '../lib/supabase'
-import { makeLogger } from '../lib/logger'
+import { makeLogger, serializeError } from '../lib/logger'
 import type { Account, Brand, Channel, ChannelHandles } from '../lib/types'
 
 const log = makeLogger('collector')
@@ -23,7 +23,7 @@ function currentWeekStart(): string {
   return d.toISOString().slice(0, 10)
 }
 
-// ── Channel spec types ────────────────────────────────────────
+// â”€â”€ Channel spec types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Apify: runs an Apify actor and parses the dataset output.
 // Direct: fetches data without Apify (free, no compute units consumed).
 
@@ -41,8 +41,8 @@ interface DirectSpec {
 
 type ChannelSpec = ApifySpec | DirectSpec
 
-// ── Google News RSS ───────────────────────────────────────────
-// Free — no Apify compute units. Google News RSS is a public endpoint with
+// â”€â”€ Google News RSS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Free â€” no Apify compute units. Google News RSS is a public endpoint with
 // no auth or rate limits at this query volume.
 
 function parseRssItems(xml: string): Array<{ title: string; url: string; date: string; source: string }> {
@@ -58,8 +58,8 @@ function parseRssItems(xml: string): Array<{ title: string; url: string; date: s
   return items
 }
 
-// ── Meta Ads Library API ──────────────────────────────────────
-// Official Graph API — free, no Apify compute units.
+// â”€â”€ Meta Ads Library API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Official Graph API â€” free, no Apify compute units.
 // App access token = APP_ID|APP_SECRET (never expires for public data reads).
 // Requires Marketing API product added to the Facebook Developer App.
 
@@ -108,7 +108,7 @@ async function collectMetaAds(fbHandle: string | null, brandName: string): Promi
   }
 }
 
-// ── Google News RSS ───────────────────────────────────────────
+// â”€â”€ Google News RSS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function collectGoogleNews(query: string): Promise<Record<string, unknown>> {
   const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=en-IN&gl=IN&ceid=IN:en`
   const res = await fetch(rssUrl, {
@@ -132,7 +132,7 @@ async function collectGoogleNews(query: string): Promise<Record<string, unknown>
   }
 }
 
-// ── Channel spec map ──────────────────────────────────────────
+// â”€â”€ Channel spec map â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const CHANNEL_SPECS: Partial<Record<Channel, ChannelSpec>> = {
   instagram: {
@@ -172,7 +172,7 @@ const CHANNEL_SPECS: Partial<Record<Channel, ChannelSpec>> = {
     },
   },
 
-  // Free: Meta Ads Library API — official Graph API, no Apify compute units.
+  // Free: Meta Ads Library API â€” official Graph API, no Apify compute units.
   // App access token = FACEBOOK_APP_ID|FACEBOOK_APP_SECRET (never expires).
   // Marketing API product must be added to the Facebook Developer App.
   meta_ads: {
@@ -180,7 +180,7 @@ const CHANNEL_SPECS: Partial<Record<Channel, ChannelSpec>> = {
     collect: async (h, brandName) => collectMetaAds(h.handle ?? null, brandName),
   },
 
-  // Free: Google News RSS — no Apify compute units.
+  // Free: Google News RSS â€” no Apify compute units.
   news: {
     source: 'direct',
     collect: async (h, brandName) => collectGoogleNews(h.handle ?? brandName),
@@ -198,7 +198,7 @@ const CHANNEL_SPECS: Partial<Record<Channel, ChannelSpec>> = {
   },
 }
 
-// ── Channels active per plan ──────────────────────────────────
+// â”€â”€ Channels active per plan â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const PLAN_CHANNELS: Record<string, Channel[]> = {
   trial:      ['instagram', 'meta_ads', 'amazon', 'news', 'google_search'],
   starter:    ['instagram', 'meta_ads', 'amazon', 'news', 'google_search'],
@@ -207,7 +207,7 @@ const PLAN_CHANNELS: Record<string, Channel[]> = {
   enterprise: ['instagram', 'meta_ads', 'amazon', 'news', 'google_search', 'linkedin', 'youtube', 'twitter'],
 }
 
-// ── Main ──────────────────────────────────────────────────────
+// â”€â”€ Main â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 async function run() {
   const weekStart = currentWeekStart()
   log.info('starting', { weekStart })
@@ -314,7 +314,7 @@ async function run() {
     }
   }
 
-  // ── Brand channels: GA4 + GSC (account-level, client brand only) ─────────
+  // â”€â”€ Brand channels: GA4 + GSC (account-level, client brand only) â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Collects first-party data for the account's own brand using Google OAuth tokens.
   // Runs after Apify collection so failures here don't block competitor snapshots.
 
@@ -347,13 +347,13 @@ async function run() {
         account.account_id,
       )
       if (!refreshed) {
-        log.warn('google token refresh failed — skipping brand channels', { account_id: account.account_id })
+        log.warn('google token refresh failed â€” skipping brand channels', { account_id: account.account_id })
         continue
       }
       accessToken = refreshed
     }
 
-    // ── GA4 ──
+    // â”€â”€ GA4 â”€â”€
     if (ga4PropertyId) {
       try {
         log.info('collecting ga4', { brand: clientBrand.brand_name, property: ga4PropertyId })
@@ -383,7 +383,7 @@ async function run() {
       }
     }
 
-    // ── GSC ──
+    // â”€â”€ GSC â”€â”€
     if (gscSiteUrl) {
       try {
         log.info('collecting gsc', { brand: clientBrand.brand_name, site: gscSiteUrl })
@@ -416,11 +416,11 @@ async function run() {
 
   log.info('done', { snapshots, failures })
   if (failures > 0 && failures / (snapshots + failures) > 0.1) {
-    log.warn('failure rate above 10% — review Apify actor health')
+    log.warn('failure rate above 10% â€” review Apify actor health')
   }
 }
 
-// ── Google API helpers ────────────────────────────────────────
+// â”€â”€ Google API helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async function refreshGoogleToken(
   refreshToken: string | undefined,
@@ -578,6 +578,7 @@ function sevenDaysAgo(): string {
 }
 
 run().catch(err => {
-  log.error('fatal', { error: String(err) })
+  log.error('fatal', { error: serializeError(err) })
   process.exit(1)
 })
+

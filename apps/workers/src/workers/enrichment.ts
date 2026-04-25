@@ -1,5 +1,5 @@
-/**
- * enrichment.ts — NinjaPear background enrichment
+﻿/**
+ * enrichment.ts â€” NinjaPear background enrichment
  *
  * Schedule: Daily 8:00am IST (cron: 30 2 * * * UTC)
  *
@@ -14,7 +14,7 @@
  */
 
 import { db } from '../lib/supabase'
-import { makeLogger } from '../lib/logger'
+import { makeLogger, serializeError } from '../lib/logger'
 
 const log = makeLogger('enrichment')
 
@@ -35,7 +35,7 @@ interface CacheRow {
   expires_at:         string
 }
 
-// ── Helpers ──────────────────────────────────────────────────
+// â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function normaliseWebsite(raw: string): string {
   // Ensure https:// prefix for NinjaPear queries
@@ -58,7 +58,7 @@ async function getCompetitorListing(
     return (cached as CacheRow).competitor_listing
   }
 
-  // 2. Cache miss — call NinjaPear
+  // 2. Cache miss â€” call NinjaPear
   if (!NINJAPEAR_KEY) {
     log.warn('NINJAPEAR_API_KEY not set, skipping')
     return null
@@ -84,7 +84,7 @@ async function getCompetitorListing(
       log.warn('NinjaPear error', { website, status: res.status })
     }
   } catch (err) {
-    log.warn('NinjaPear timeout or network error', { website, err: String(err) })
+    log.warn('NinjaPear timeout or network error', { website, err: serializeError(err) })
   }
 
   // 3. Write to cache (even on null to avoid hammering the API on repeated runs)
@@ -100,13 +100,13 @@ async function getCompetitorListing(
   return listing
 }
 
-// ── Main ─────────────────────────────────────────────────────
+// â”€â”€ Main â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 async function run() {
   log.info('starting enrichment worker')
 
   if (!NINJAPEAR_KEY) {
-    log.warn('NINJAPEAR_API_KEY not set — nothing to do')
+    log.warn('NINJAPEAR_API_KEY not set â€” nothing to do')
     return
   }
 
@@ -200,7 +200,7 @@ async function run() {
         .eq('account_id', accountId)
 
     } catch (err) {
-      log.warn('enrichment failed for account', { accountId, err: String(err) })
+      log.warn('enrichment failed for account', { accountId, err: serializeError(err) })
       await db
         .from('accounts')
         .update({ ninjapear_enrichment_status: 'failed' })
@@ -215,3 +215,4 @@ run().catch(err => {
   console.error('enrichment worker fatal error', err)
   process.exit(1)
 })
+
