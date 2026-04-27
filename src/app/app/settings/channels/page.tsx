@@ -5,7 +5,6 @@ import { redirect } from 'next/navigation'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { createServiceClient } from '@/lib/supabase/server'
-import { PLAN_LIMITS, type Plan } from '@/lib/utils'
 import { DisconnectButton } from '@/components/settings/disconnect-button'
 import { GooglePropertyForm } from '@/components/settings/google-property-form'
 import Link from 'next/link'
@@ -78,16 +77,16 @@ export default async function ChannelsSettingsPage({
 
   const acc = account as { plan: string; oauth_tokens: Record<string, unknown> | null }
   const oauthTokens = acc.oauth_tokens ?? {}
-  const planLimits  = PLAN_LIMITS[acc.plan as Plan] ?? PLAN_LIMITS.trial
 
   function getStatus(ch: ChannelDef): ChannelStatus {
     if (ch.oauthKey === null) return 'auto'
     return oauthTokens[ch.oauthKey] ? 'connected' : 'disconnected'
   }
 
+  // Channels are bundled across all paid plans (every paid plan gets every
+  // channel we collect). Trial gets the base set only; tiered channels lock.
   function isLocked(ch: ChannelDef): boolean {
-    if (ch.tier === 'growth' && !planLimits.v2Channels) return true
-    if (ch.tier === 'agency') return acc.plan !== 'agency' && acc.plan !== 'enterprise'
+    if (acc.plan === 'trial') return ch.tier !== 'all'
     return false
   }
 
@@ -188,7 +187,7 @@ export default async function ChannelsSettingsPage({
                   </div>
 
                   {locked ? (
-                    <Link href="/upgrade?reason=channels">
+                    <Link href="/upgrade">
                       <Button variant="outline" size="sm" className="ml-2 h-7 text-[11px]">Upgrade</Button>
                     </Link>
                   ) : canOAuth ? (

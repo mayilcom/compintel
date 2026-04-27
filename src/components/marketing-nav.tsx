@@ -96,12 +96,7 @@ export function MarketingNav() {
           <Link href="/sign-in" className="hidden md:block text-[13px] text-muted hover:text-ink transition-colors">
             Sign in
           </Link>
-          <Link href="/contact">
-            <Button size="sm" variant="outline" className="hidden md:inline-flex">
-              Request demo
-            </Button>
-          </Link>
-          <Link href="/sign-up">
+          <Link href="/sign-up?plan=growth">
             <Button size="sm">Start free trial</Button>
           </Link>
         </div>

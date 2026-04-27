@@ -5,6 +5,26 @@ Format: `[version] YYYY-MM-DD — Description`
 
 ---
 
+## [0.1.51] 2026-04-28 — Marketing site: USD pricing, /product, /pricing, channel realignment
+
+### Added
+
+- **`src/app/(marketing)/product/page.tsx`** — New product page. Sections: hero, intelligence layer (cross-brand scoring · synthesis · verification), full 8-stage pipeline timeline (Sat 8pm → Sun 7am IST), honest channel inventory split into "live in every brief" and "in development", sample brief using global brands (HubSpot, Salesforce, Zendesk), data handling & GDPR section (where data lives, retention, GDPR rights, DPA on Enterprise), sub-processor list (Supabase, Clerk, Stripe, Anthropic, Resend, Apify, Vercel, Railway), CTA. SOC 2 omitted per product decision.
+- **`src/app/(marketing)/pricing/page.tsx`** — New dedicated pricing page (USD only). Three tier cards (Starter $49 · Growth $129 · Agency $249) with monthly/annual toggle defaulting to monthly. Expanded enterprise band with `from $999/month` floor and 10-feature value list (unlimited everything · dedicated CSM · custom brief architecture · white-label · SLA · DPA · EU residency · SSO · priority support). Seven-question FAQ (trial-card, brand definition, plan switching, limit overflow, annual billing, data handling, region/currency).
+
+### Changed
+
+- **`src/app/(marketing)/page.tsx`** — Landing rewrite. Pipeline timeline corrected from "Mon/Tue/Wed" to actual Saturday-night → Sunday-morning cadence ("Eight workers run between Sat 8pm and Sun 7am IST"). Channel chip list pruned from over-promising 12-name list to 7 channels we actually collect. Brand examples in the hero brief mockup swapped from regional (Britannia, Parle-G, Oreo Diwali) to global (HubSpot, Salesforce, Zendesk). Plan cards switched to USD-only ($49 / $129 / $249), V1/V2 channels jargon dropped, "Most popular" highlight remains on Growth, enterprise band expanded with `from $999/month` and updated CTA. New "Three engines, one brief" section above pricing surfaces the intelligence-layer differentiators that previously had no marketing surface.
+- **`src/components/marketing-nav.tsx`** — Removed "Request demo" button from header CTAs; primary CTA is now `Start free trial` linking to `/sign-up?plan=growth`. Sales conversations route through the enterprise CTAs on `/pricing` and the Contact page instead.
+- **`src/lib/utils.ts`** — `PLAN_LIMITS` recalibrated to match new pricing. Dropped `channels` and `v2Channels` fields entirely — channels are no longer a tier differentiator (every paid plan gets every channel we collect). New limits: Starter (1/3/3/1), Growth (3/10/10/3 + alerts), Agency (5/15/15/5 + CSV + custom domain) — all tightened from the over-promising prior version. `UPGRADE_REASONS.channels` removed.
+- **`src/app/app/settings/channels/page.tsx`** — `isLocked()` simplified after `v2Channels` removal: trial sees only base-tier channels with an upgrade prompt; all paid plans see every channel unlocked. Upgrade link no longer carries `?reason=channels`.
+
+### Why
+
+Three problems with the prior site: (1) it lied about the pipeline cadence ("collection runs Monday 2am IST. Diff Tuesday. AI Wednesday." — actual is Sat-night through Sunday-morning, all in eleven hours), (2) it sold channels we don't ship (Reddit, NewsAPI, Proxycurl), and (3) it was India-first without USD pricing or global brand examples — closing the door on international visitors. The plan-limit cleanup reflects the same principle: stop selling counts we can't honestly back.
+
+---
+
 ## [0.1.50] 2026-04-27 — Cross-brand panel scoring (signal-ranker v1.3)
 
 ### Changed

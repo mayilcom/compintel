@@ -38,55 +38,50 @@ export const SIGNAL_LABELS: Record<string, string> = {
   silence: 'Silence',
 }
 
-/** Plan limits config — mirrors plan_limits DB table (PRD §13) */
+/**
+ * Plan limits config — mirrors plan_limits DB table (PRD §13).
+ *
+ * Channels are no longer a tier differentiator — every paid plan gets every
+ * channel we collect. Channel coverage is bundled. See ADR-014 / pricing page.
+ */
 export const PLAN_LIMITS = {
   trial: {
     brands: 1,
     competitors: 3,
-    channels: 5,
     recipients: 2,
     seats: 1,
-    v2Channels: false,
     alerts: false,
     csvExport: false,
   },
   starter: {
     brands: 1,
-    competitors: 5,
-    channels: 10,
-    recipients: 5,
+    competitors: 3,
+    recipients: 3,
     seats: 1,
-    v2Channels: false,
     alerts: false,
     csvExport: false,
   },
   growth: {
     brands: 3,
     competitors: 10,
-    channels: 20,
     recipients: 10,
     seats: 3,
-    v2Channels: true,
     alerts: true,
     csvExport: false,
   },
   agency: {
-    brands: 10,
-    competitors: 20,
-    channels: 50,
-    recipients: 20, // UI cap; DB allows null (unlimited)
-    seats: 10,
-    v2Channels: true,
+    brands: 5,
+    competitors: 15,
+    recipients: 15,
+    seats: 5,
     alerts: true,
     csvExport: true,
   },
   enterprise: {
     brands: Infinity,
     competitors: Infinity,
-    channels: Infinity,
     recipients: Infinity,
     seats: Infinity,
-    v2Channels: true,
     alerts: true,
     csvExport: true,
   },
@@ -125,7 +120,6 @@ export function normalizeSources(raw: unknown): string[] {
 export const UPGRADE_REASONS: Record<string, string> = {
   competitors: "You've reached your competitor limit.",
   recipients:  "You've reached your recipient limit.",
-  channels:    "You've reached your channel limit.",
   brands:      "You've reached your brand limit.",
   seats:       "You've reached your team seat limit.",
 }
