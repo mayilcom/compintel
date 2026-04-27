@@ -74,28 +74,56 @@ For each `snapshot` from Stage 1:
 
 ---
 
-## Stage 3 — Signal Ranker
+## Stage 3 — Signal Ranker *(cross-brand panel scoring as of v1.3 — see ADR-014)*
 
 **Runs:** Sunday 12:00am IST
 **Trigger:** Railway cron `30 18 * * 6` (UTC)
 
 ### What it does
-1. Load `category_config` thresholds for the account's brand category
-2. For each delta, compare against thresholds
-3. Assign a signal type (`threat / watch / opportunity / trend / silence`) and score (1–100)
-4. Create preliminary `signal` rows with `source = 'rule_based'` (to be enriched by AI interpreter)
+1. Read all current-week `snapshots` joined to `brands` and `accounts` (filter out paused/locked/non-active)
+2. For each `(account_id, channel)` build a **panel** of every brand with a successful snapshot
+3. Compute `panelStats` (`count`, `median`, `max`, `min`) per metric
+4. Score each brand's primary metric via `outlierScore(value, median, minAbsolute)` — see ADR-014 for the curve
+5. Look up the brand's prior-week snapshot (if any) and embed `wow_delta_pct` as enrichment in `data_points`
+6. Create preliminary `signal` rows with `source = 'rule_based'` (AI interpreter rewrites later)
+
+### Why panels, not WoW deltas
+
+Earlier versions scored each brand against its own previous week. That produced empty briefs for new accounts (no history → no deltas) and brand-isolated language (*"up 50% vs last week"*) that didn't match the competitive-intelligence positioning. Cross-brand panel scoring fixes both: a brand can be *3× the panel median* on its first brief, and headlines read like a competitive briefing instead of a brand history report. Full rationale in [ADR-014](../decisions/ADR-014-cross-brand-panel-scoring.md).
+
+`differ_results` is no longer the ranker's primary input — the worker reads `snapshots` directly and treats `differ_results` as a side lookup for WoW phrases.
 
 ### Scoring logic
 
-| Score range | Meaning |
-|-------------|---------|
-| 80–100 | Lead signal candidate |
-| 50–79 | Supporting signal |
-| 20–49 | Catalog-worthy |
-| <20 | Filtered out |
+Outlier score curve based on `value / panel_median`:
+
+| Ratio | Score band | Meaning |
+|-------|-----------|---------|
+| ≥ 3.0× | 80–100 | Lead signal candidate |
+| ≥ 2.0× | 60–80 | Strong supporting signal |
+| ≥ 1.5× | 40–60 | Catalog-worthy |
+| < 1.5× | 0 | Median behaviour, no signal |
+
+A `minAbsolute` floor per metric (e.g. ≥5 Instagram posts) prevents noise when the panel median is near zero.
 
 ### Silence signals
-A competitor with zero posts for `silence_days_threshold` days (from category_config) gets a `silence` type signal. Silence can be as strategic as activity.
+A brand with zero posts for `silence_days_trigger` days (from `category_config`) gets a `silence`-type signal. This is the one scorer that does not need the panel — silence is computed from a single brand's `last_post_date` and is preserved unchanged from the v1 ranker.
+
+### data_points shape
+
+Each signal carries the panel context the AI interpreter needs:
+
+```jsonc
+[
+  { "score": 78, "metric": "post_count_7d", "value": 14,
+    "panel_median": 4, "panel_max": 14, "panel_size": 5, "rank": 1,
+    "is_client": false, "client_brand": "ACME Foods" },
+  { "metric": "avg_engagement", "value": 850, "panel_median": 200 },
+  { "metric": "post_count_7d", "wow_delta_pct": 60, "prev_value": 8.75 }
+]
+```
+
+`wow_delta_pct` only appears when the brand has a prior-week snapshot. The AI interpreter is instructed to use it only as a parenthetical and to omit any "vs last week" framing when it's absent.
 
 ---
 

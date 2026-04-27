@@ -5,6 +5,35 @@ Format: `[version] YYYY-MM-DD — Description`
 
 ---
 
+## [0.1.50] 2026-04-27 — Cross-brand panel scoring (signal-ranker v1.3)
+
+### Changed
+
+- **`apps/workers/src/workers/signal-ranker.ts`** — Full rewrite. The worker now reads `snapshots` directly (joined to `brands` and `accounts`), groups every brand with a successful snapshot for `(account_id, channel)` into a peer panel, and scores each brand on its position relative to the panel median. The previous design scored each brand only against its own prior week, which produced empty first-briefs for new accounts and brand-isolated language that didn't match Mayil's competitive-intelligence positioning.
+- **`apps/workers/src/workers/ai-interpreter.ts`** — `SYSTEM_PROMPT` rewritten. Cross-brand framing (*"3.5× the panel median across 5 tracked competitors"*) is now the primary headline pattern; WoW deltas appear only as a trailing parenthetical and only when `wow_delta_pct` is present in the signal's `data_points`. The prompt forbids invented "vs last week" framing when the data doesn't carry it.
+
+### Added
+
+- **`docs/decisions/ADR-014-cross-brand-panel-scoring.md`** — Full rationale: why panels, why median (not mean), why WoW becomes enrichment instead of the primary axis, and the `outlierScore` curve.
+- **`outlierScore(value, median, minAbsolute)`** scoring helper in `signal-ranker.ts` — `≥ 3× median → 80–100`, `≥ 2× → 60–80`, `≥ 1.5× → 40–60`, with an absolute floor per metric to prevent noise when the panel median is near zero.
+- **`data_points` panel shape** — every signal now carries `panel_median`, `panel_max`, `panel_size`, `rank`, `is_client`, `client_brand` so the AI interpreter has full panel context. `wow_delta_pct` and `prev_value` are appended as a separate object only when prior-week data exists.
+
+### Why
+
+The differ-driven ranker had two structural problems: (1) new accounts with no prior-week snapshot got empty briefs by construction, and (2) brand-vs-self WoW comparisons aren't what a competitive intelligence product is selling. Cross-brand panels solve both — brand-new accounts ship a real first brief, and the brief reads like a competitive briefing instead of a brand history report.
+
+### Migration / impact
+
+- The `differ` worker is unchanged and still writes `differ_results`; that table is no longer the ranker's primary input but is read as a side lookup for WoW enrichment.
+- The `category_config.posting_spike_threshold` and `engagement_spike_threshold` columns are no longer read. Schema unchanged for now; cleanup deferred to a future ADR.
+- AI prompts need to be re-evaluated against real signal output once the next pipeline runs — the existing examples in `ai-interpreter` were written for WoW-style headlines and the new prompt may need tuning after the first end-to-end test.
+
+### Updated
+
+- **`docs/architecture/data-pipeline.md`** — Stage 3 description rewritten to describe panel scoring, the `outlierScore` curve, and the `data_points` shape; references ADR-014.
+
+---
+
 ## [0.1.49] 2026-04-27 — Add WEEK_OVERRIDE env var to all workers
 
 ### Added
