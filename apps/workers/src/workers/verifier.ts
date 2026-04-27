@@ -40,6 +40,7 @@ const client = new Anthropic()
 const VERIFIER_MODEL = 'claude-haiku-4-5-20251001'
 
 function currentWeekStart(): string {
+  if (process.env.WEEK_OVERRIDE) return process.env.WEEK_OVERRIDE
   const d = new Date()
   const day = d.getUTCDay() || 7
   d.setUTCDate(d.getUTCDate() - day + 1)

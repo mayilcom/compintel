@@ -33,6 +33,7 @@ import type { ClusterType, SignalType } from '../lib/types'
 const log = makeLogger('synthesizer')
 
 function currentWeekStart(): string {
+  if (process.env.WEEK_OVERRIDE) return process.env.WEEK_OVERRIDE
   const d = new Date()
   const day = d.getUTCDay() || 7
   d.setUTCDate(d.getUTCDate() - day + 1)

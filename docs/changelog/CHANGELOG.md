@@ -5,6 +5,14 @@ Format: `[version] YYYY-MM-DD — Description`
 
 ---
 
+## [0.1.49] 2026-04-27 — Add WEEK_OVERRIDE env var to all workers
+
+### Added
+
+- **All 8 weekly workers** (`collector`, `differ`, `signal-ranker`, `synthesizer`, `ai-interpreter`, `verifier`, `brief-assembler`, `delivery`) — `currentWeekStart()` now checks `process.env.WEEK_OVERRIDE` first. When set to a `YYYY-MM-DD` date string, all workers treat that Monday as the current week. Allows manual reruns of a past week's pipeline without waiting for the next scheduled run. Set in Railway environment variables, trigger each worker manually in order, then remove the override.
+
+---
+
 ## [0.1.48] 2026-04-25 — Migration 010: unique constraint on signals table
 
 ### Fixed

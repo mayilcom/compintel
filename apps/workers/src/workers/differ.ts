@@ -30,6 +30,7 @@ function pctChange(current: number | null, prev: number | null): number | null {
 }
 
 function currentWeekStart(): string {
+  if (process.env.WEEK_OVERRIDE) return process.env.WEEK_OVERRIDE
   const d = new Date()
   const day = d.getUTCDay() || 7
   d.setUTCDate(d.getUTCDate() - day + 1)
