@@ -103,9 +103,9 @@ body {
 /* Section label style — uppercase, spaced, muted */
 .label-section {
   font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 13px;
   font-weight: 600;
-  letter-spacing: 0.09em;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: #888780;
 }

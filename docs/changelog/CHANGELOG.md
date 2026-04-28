@@ -5,6 +5,23 @@ Format: `[version] YYYY-MM-DD — Description`
 
 ---
 
+## [0.1.52] 2026-04-28 — Marketing site readability pass: bigger fonts, full-width layout, Platform nav
+
+### Changed
+
+- **`src/app/globals.css`** — `.label-section` bumped from 10px → 13px (letter-spacing tightened to 0.08em). The 10px eyebrow label was a holdover from dense-dashboard styling and read as illegible noise on marketing pages.
+- **`src/components/marketing-nav.tsx`** — Header rebuilt with a wider Peec-style layout (max-w-[1440px], 72px height, generous nav-item gaps). Primary nav reorganised to `Platform | Solutions | Resources | Pricing`. New `Platform` dropdown (Option B) exposes deep-link entry points to the product page: Overview, The brief, Channels, Data & security. Logo, nav, and dropdown body fonts all stepped up (text-base, 15px dropdown items, 13px descriptions).
+- **`src/app/(marketing)/layout.tsx`** — Footer restructured to four columns (Platform, Solutions, Resources, Company) and bumped to text-sm body, 13px labels. Container widened to max-w-[1440px] with px-6/10/12 responsive padding.
+- **`src/app/(marketing)/page.tsx`** — Type scale lifted to Supabase-style hero (text-5xl md:text-7xl lg:text-[88px] H1, text-lg md:text-xl subhead, text-base body throughout). Container widened to max-w-[1440px]. **Pricing section removed entirely** — homepage's job is to sell the product; pricing lives on `/pricing`. Closing CTA reframed as "Your first brief, this Sunday" with a single trial button + secondary link to pricing.
+- **`src/app/(marketing)/product/page.tsx`** — Same type-scale lift across hero, sections, channel/sub-processor lists, and CTA. Anchor IDs added for `#sample-brief`, `#channels`, `#data-handling` so the new Platform-dropdown deep-links resolve. `scroll-mt-24` on each anchored section so the sticky 72px header doesn't clip the heading.
+- **`src/app/(marketing)/pricing/page.tsx`** — Same type-scale lift. Hero H1 to text-5xl/7xl/[88px]. Tier card prices to text-5xl, features and check icons larger. FAQ questions text-base/lg. Toggle buttons text-sm with bigger tap targets. Enterprise band heading to text-3xl/5xl with larger feature lines.
+
+### Why
+
+The 13px muted text and 10px eyebrows that worked for dense data dashboards strain the eyes of the 40+ founder/CMO buyer who is the actual reader of these pages. Type scale lifted to a level closer to what Supabase ships on its homepage; full-width container expanded to 1440px to use the available canvas instead of pinching content into a 1152px column. The Platform-dropdown nav (Option B) makes the product page's depth navigable from any page, removing the previous orphaned `/product` flat link in the header.
+
+---
+
 ## [0.1.51] 2026-04-28 — Marketing site: USD pricing, /product, /pricing, channel realignment
 
 ### Added
