@@ -5,6 +5,24 @@ Format: `[version] YYYY-MM-DD — Description`
 
 ---
 
+## [0.1.53] 2026-04-29 — Skill learning system + marketing-site audit pair
+
+### Added
+
+- **`.claude/hooks/skill-learning.js`** — New PostToolUse hook (Option C of the skill-learning strategy). Fires on edits to a curated set of "law-of-the-land" files (`src/lib/utils.ts`, `src/app/globals.css`, `src/app/(marketing)/pricing/**`, `src/components/ui/**`, `apps/emails/**`, `content/**`, `docs/changelog/CHANGELOG.md`, `docs/decisions/ADR-*`, etc.) and injects an `[skill-learning]` reminder naming the specific skills that may need updating. Coexists with the existing `auto-doc.js` hook — both fire side-by-side with distinct prefixes.
+- **All 14 user/project skills updated with a "Before writing — verify current state" section** (Option B of the strategy). Each skill now opens with explicit read-from-source directives: `copywriter`, `ab-variant`, `copy-audit`, `competitor-brief`, `email-campaign`, `paid-ads` point at `src/lib/utils.ts` and `src/app/(marketing)/pricing/page.tsx`; `web-design` points at `globals.css`, `tailwind.config.*`, and `src/components/ui/**`; `content-strategy`, `new-blog-post`, `new-case-study`, `seo`, `meta-check`, `newsletter`, `social`, `pr` point at the relevant `content/`, `docs/`, and `src/app/(marketing)/` directories.
+- **`docs/audits/`** — New documentation category for point-in-time assessments. Established with an index `README.md` and two date-stamped audits of the marketing site:
+  - **`docs/audits/2026-04-29-marketing-positioning.md`** — Audit through an enterprise / Fortune 500 buyer lens, with a clarifying note that the founder's actual strategy is enterprise-grade intelligence at SMB pricing. Identifies hero badge, sample brief brand examples, untouched `/solutions/*` pages, and Apify-as-sub-processor as the highest-priority items.
+  - **`docs/audits/2026-04-29-marketing-design.md`** — Pure UI/UX audit (copy / positioning explicitly out of scope). Identifies wall-of-rectangles shape monotony, no iconography, no product screenshots, and the wasted real estate around the sample brief mockup as the highest-impact deficits. Provides a ranked fix list with effort estimates.
+
+### Why
+
+The skill-learning system addresses a structural problem: skills are static markdown files that drift as the product changes (e.g. the `copywriter` skill's "Plans" block was teaching INR pricing weeks after we shipped USD-only). The B+C combination keeps tokens current automatically (B: read-the-source directives), and forces capture of new patterns when source-of-truth files change (C: hook-driven nudge). Together they make skills self-maintaining without depending on the user remembering.
+
+The audit pair captures point-in-time observations of the marketing site so future readers can verify whether the findings still hold. Both audits remain open at write time — they're snapshots, not implementation tickets, but the recommended fixes are concrete enough to execute against.
+
+---
+
 ## [0.1.52] 2026-04-28 — Marketing site readability pass: bigger fonts, full-width layout, Platform nav
 
 ### Changed
