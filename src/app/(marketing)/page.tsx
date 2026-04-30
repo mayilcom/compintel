@@ -11,7 +11,7 @@ const STEPS = [
   {
     number: '01',
     title: 'Add your brand and competitors',
-    body: 'Enter your brand name or domain. Mayil auto-discovers public channel handles for every brand. Confirm and you\'re set.',
+    body: 'Enter your brand name or domain. Mayil discovers public channel handles for every brand. Confirm and you\'re set.',
   },
   {
     number: '02',
@@ -21,11 +21,11 @@ const STEPS = [
   {
     number: '03',
     title: 'The pipeline runs every Saturday night',
-    body: 'Eight workers — collect, diff, rank, synthesise, interpret, verify, assemble, deliver — run between Sat 8pm and Sun 7am IST.',
+    body: 'Our platform collect across marketing channels, analyze the data collected, and interpret over the night.',
   },
   {
     number: '04',
-    title: 'Brief lands in your inbox Sunday 7am',
+    title: 'Brief lands in your inbox Sunday 8am',
     body: 'One email. A lead story. Supporting evidence. An activity catalog. A closing question that stays with you all week.',
   },
 ]
@@ -33,10 +33,10 @@ const STEPS = [
 const INTELLIGENCE = [
   {
     title: 'Cross-brand panel scoring',
-    body: 'Headlines lead with relative position — "HubSpot posted 3.5× the panel median" — not week-over-week noise.',
+    body: 'Headlines lead with relative position "HubSpot posted 3.5x the panel median" not week-over-week noise.',
   },
   {
-    title: 'Signal synthesis',
+    title: 'Signal intelligence',
     body: 'Related signals across channels are clustered into one story. Three correlated facts beat three disconnected bullets.',
   },
   {
@@ -51,14 +51,13 @@ export default function LandingPage() {
       {/* ── Hero ── */}
       <section className="mx-auto max-w-[1440px] px-6 md:px-10 lg:px-12 py-24 md:py-32 text-center">
         <Badge variant="default" className="mb-8 mx-auto">
-          Verified Actionable Insights.
+          Marketing channel intelligence
         </Badge>
-        <h1 className="font-display text-5xl leading-[1.05] tracking-tight text-ink md:text-7xl lg:text-[88px]">
-          Weekly Competitive Intelligence Brief<br />for Founders and Marketing Leaders.
+        <h1 className="font-display text-5xl leading-[1.3] tracking-tight text-ink md:text-[72px] lg:text-[72px]">
+          The Sunday brief on<br />your competitors&apos; marketing.
         </h1>
-        <p className="mx-auto mt-8 max-w-2xl text-lg text-muted md:text-xl leading-relaxed">
-          Every Sunday, Mayil tells you what your competitors did last week
-          and what to do about it.
+        <p className="mx-auto mt-8 max-w-2xl text-[1.3rem] text-muted leading-relaxed">
+          Mayil reads your competitors across marketing channels every week and writes one brief that tells you what changed and what to do about it.
         </p>
         <div className="mt-12 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
           <Link href="/sign-up?plan=growth">
@@ -119,6 +118,32 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── Who reads it on Sunday ── */}
+      <section className="border-t border-border bg-paper">
+        <div className="mx-auto max-w-[1440px] px-6 md:px-10 lg:px-12 py-24">
+          <p className="label-section text-center mb-4">Who reads it on Sunday</p>
+          <h2 className="font-display text-3xl text-center text-ink mb-16 md:text-5xl">
+            Two reads, one brief.
+          </h2>
+          <div className="grid gap-6 md:grid-cols-2 max-w-5xl mx-auto">
+            <div className="rounded-[12px] border border-border bg-surface p-8">
+              <p className="label-section mb-3">For founder</p>
+              <h3 className="font-display text-2xl text-ink mb-4">The marketing head you haven&apos;t hired yet.</h3>
+              <p className="text-base text-muted leading-relaxed">
+                You&apos;re running marketing yourself or with a small team. Every Sunday at 8am, Mayil tells you what your competitors did, what it likely means, and one question to bring to the week.
+              </p>
+            </div>
+            <div className="rounded-[12px] border border-border bg-surface p-8">
+              <p className="label-section mb-3">For CMO</p>
+              <h3 className="font-display text-2xl text-ink mb-4">Your team&apos;s Monday morning starting point.</h3>
+              <p className="text-base text-muted leading-relaxed">
+                You lead a team across brands or work with agencies. Mayil is one shared brief so creative, paid, and brand work off the same competitive read without anyone having to compile it.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ── Intelligence layer ── */}
       <section className="border-t border-border bg-surface">
         <div className="mx-auto max-w-[1440px] px-6 md:px-10 lg:px-12 py-24">
@@ -127,7 +152,7 @@ export default function LandingPage() {
             Three engines, one brief.
           </h2>
           <p className="text-center text-base md:text-lg text-muted max-w-3xl mx-auto mb-16 leading-relaxed">
-            Most competitive intelligence tools are scrapers with a dashboard bolted on. Mayil is built around the synthesis — the part that turns collection into something you actually act on.
+            Most competitive intelligence tools are scrapers with a dashboard bolted on. Mayil is built around the intelligence, the part that turns data collection into something you actually act on.
           </p>
           <div className="grid gap-6 md:grid-cols-3 max-w-6xl mx-auto">
             {INTELLIGENCE.map(item => (
@@ -199,7 +224,7 @@ export default function LandingPage() {
             Your first brief, this Sunday.
           </h2>
           <p className="text-base md:text-lg text-muted mb-12 max-w-2xl mx-auto leading-relaxed">
-            14-day trial on every plan. Card required at signup. Cancel any time before day 14 to avoid being charged.
+            14-day trial on every plan. Card required at signup. Cancel any time before the trial period ends to avoid being charged.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <Link href="/sign-up?plan=growth">

@@ -18,13 +18,80 @@ Format: `[version] YYYY-MM-DD — Description`
 ### Changed
 
 - **`tailwind.config.ts`** — Named-color hex literals swapped from warm paper to cool slate. `paper` `#F7F4ED → #F7F8FA`, `surface-2` `#F0EDE4 → #EFF1F4`, `ink` `#0D0D0A → #0A0E1A`, `muted` `#6B6860 → #5A6373`, `border` `#E0DDD4 → #DCE0E8`. Gold and signal tokens unchanged. `boxShadow.card` strengthened to `0 1px 2px rgba(10,14,26,0.04), 0 4px 12px rgba(10,14,26,0.04)` so cards lift visibly against the lighter cool base (audit fix folded in).
-- **`src/app/globals.css`** — Same palette values mirrored on the `:root` CSS variables (used by `body { background-color: var(--paper) }` and shadcn components). `--shadow-card` matched. Shadcn HSL bridge (`--background`, `--foreground`, `--muted`, `--border`, etc.) recomputed for the new hex values.
+- **`src/app/globals.css`** — Same palette values mirrored on the `:root` CSS variables. `--font-display` updated to Plus Jakarta Sans (from DM Serif Display, changed in main). Shadcn HSL bridge recomputed for cool-slate values.
 
 ### Why
 
-Direction 3 from the [design audit](../audits/2026-04-29-marketing-design.md) — cool slate base with a slight blue undertone, gold and signal colours retained as warm accents against the cool field. Bigger personality shift than Direction 1 (cool-neutral) but addresses the eye-strain complaint with a palette that pops the gold + signal accents harder. Identity anchors (DM Serif Display headings, gold accent system, signal colour mapping) are deliberately preserved so the visual character isn't fully ditched.
+Direction 3 from the design audit — cool slate base with a slight blue undertone, gold and signal colours retained as warm accents. Merged with main's font + positioning pass so the preview now combines both experiments.
 
-The palette change also unblocks several audit findings indirectly: signal colours now have headroom to be used as section accents (eyebrow rules, card top borders) without competing with a warm field, and the strengthened card shadow gives the wall-of-rectangles its first taste of depth.
+---
+
+## [0.1.58] 2026-04-30 — Typography: heading weight, line-height, and subhead size
+
+### Changed
+
+- **`src/app/globals.css`** — `.font-display` now sets `font-weight: 700` globally. All headings using `font-display` inherit Bold without needing explicit weight classes. Elements with an explicit Tailwind weight class (e.g. `font-semibold`) still override.
+- **`src/app/(marketing)/page.tsx`** — Hero H1 `leading-[1.05]` → `leading-[1.3]` for better readability at large display sizes with Plus Jakarta Sans. Hero subhead fixed at `text-[1.3rem]` (was `text-lg md:text-xl`) for a consistent 20.8px across breakpoints.
+
+### Why
+
+Plus Jakarta Sans at 400 weight lacks visual punch at 72px display scale. Bold (700) restores authority. Tighter 1.05 line-height, carried over from the serif era, reads too compressed on the wider grotesque letterforms — 1.3 gives lines room to breathe without feeling loose.
+
+---
+
+## [0.1.57] 2026-04-30 — Homepage H1 capped at 72px
+
+### Changed
+
+- **`src/app/(marketing)/page.tsx`** — H1 max size reduced from `lg:text-[88px]` to `lg:text-[72px]` (md breakpoint also set to 72px). Suits the wider letterforms of Plus Jakarta Sans at display scale.
+
+---
+
+## [0.1.56] 2026-04-30 — Typography: replace DM Serif Display with Plus Jakarta Sans
+
+### Changed
+
+- **`src/app/globals.css`** — Google Fonts import swapped from `DM+Serif+Display` to `Plus+Jakarta+Sans:wght@400;500;600;700;800`. CSS variable `--font-display` updated accordingly.
+- **`tailwind.config.ts`** — `fontFamily.display` updated from `['DM Serif Display', 'Georgia', 'serif']` to `['Plus Jakarta Sans', '-apple-system', 'sans-serif']`.
+- **`src/app/layout.tsx`** — Clerk appearance `fontFamily` updated to include `Plus Jakarta Sans` as the primary display font.
+
+### Why
+
+Trialling Plus Jakarta Sans as a full sans-serif display font to replace DM Serif Display. The warm geometric cuts work at large headline sizes and suit the editorial/brief positioning without the serif associations. All `font-display` usage across marketing and app pages picks up the change automatically.
+
+---
+
+## [0.1.55] 2026-04-30 — Product page: questions-the-brief-answers reframe + drop channel/sub-processor lists
+
+### Changed
+
+- **`src/app/(marketing)/product/page.tsx`** — Replaced two builder-perspective sections with reader-perspective ones.
+  - **"How the brief is built" pipeline timeline** (which had already been removed in 0.1.54) → new **"Questions a Mayil brief answers each Sunday"** section. Five verbatim questions a founder or CMO would ask if they had time on Sunday morning to read every channel themselves: *"What did our competitors spend on last week?"*, *"What new creative are they running — and who is it for?"*, *"What is the press saying about them — and how loudly?"*, *"Are their customers getting happier or unhappier?"*, *"Where did they go quiet — and what does the silence mean?"* Each question carries a one-line answer that names the surfaces in plain language without enumerating platforms.
+  - **"Channels" section** (long table of seven live channels with feature-by-feature descriptions plus an "in development" pill grid) → new **"Where Mayil reads"** section. One paragraph naming categories of marketing surfaces (paid, organic social, marketplace, news, search) without listing specific platforms or "in development" pipeline. The `/product#channels` nav anchor is preserved.
+- Removed `CHANNELS_LIVE` and `CHANNELS_NEXT` constants (now unused).
+- Section background colours re-flipped to maintain paper/surface alternation after the section reshuffle.
+
+### Why
+
+The previous Pipeline section explained *how the brief is made* (eight workers, time-stamped stages) and the Channels section enumerated *what we ingest* (seven platforms with feature descriptions). Both were written from the builder's seat. Founders and CMOs don't read product pages to learn the engineering — they read to find out whether the brief answers the questions they actually have on Sunday morning. The new sections replace inventory and architecture with a single buyer-facing frame: "this is the brain you're hiring, and these are the questions it answers." Each question implicitly maps to a marketing surface, so the Channels section's old job is now done by the Questions section's content — leaving Channels free to make the lighter promise: *"if a competitive move shows up in public, the brief sees it."*
+
+---
+
+## [0.1.54] 2026-04-29 — Marketing copy: marketing-channel-intelligence positioning + Founder/CMO split
+
+### Changed
+
+- **`src/app/(marketing)/page.tsx`** — Hero badge `Verified Actionable Insights.` → `Marketing channel intelligence` (named the category narrowly, dropped the buzzword stack). H1 reframed as `The Sunday brief on your competitors' marketing.` Subhead now names the actual channels (Instagram, Meta Ads, Amazon, Google News, Search) instead of the generic "what your competitors did." New `Two reads, one brief.` section inserted between hero and intelligence layer with parallel Founder ("the marketing head you haven't hired yet") and CMO ("Monday-morning starting point") framing — same product, two distinct reads.
+- **`src/app/(marketing)/product/page.tsx`** — Removed the eight-stage pipeline timeline (Sat 8pm → Sun 7am with worker names like Collect/Diff/Rank/Synthesise/Interpret/Verify/Assemble/Deliver) and its `PIPELINE` constant. Removed sub-processors table and `SUBPROCESSORS` constant (Supabase/Clerk/Stripe/Anthropic/Resend/Apify/Vercel/Railway). Data-handling cards rewritten without vendor names: "Where data lives" no longer mentions Supabase/Vercel/Railway/EU residency, "Your privacy rights" no longer surfaces `privacy@emayil.com` (link goes to `/privacy` instead), DPA card no longer claims "available on Enterprise plans" (now "available on request"). Section bg colours rebalanced to maintain alternation after the deletions. Metadata description updated from "competitive intelligence" to "marketing channel intelligence".
+- **`src/app/(marketing)/pricing/page.tsx`** — Removed `Most popular` label on Growth tier (the gold-bg highlight already does the work). Tier descriptions rewritten to name the persona: Starter → "the founder who wants the marketing head they haven't hired yet"; Growth → "the CMO whose team needs one shared competitive read"; Agency → "the operator running marketing intelligence for ten clients without losing a Friday." FAQ "How is my own data handled?" answer no longer names Supabase or RLS. FAQ "Where do you operate?" no longer says "payments are processed by Stripe."
+- **`src/app/(marketing)/solutions/page.tsx`** — `Enterprise-grade infrastructure` differentiator card rewritten as `Built to a publishing standard`. Removed unsubstantiated SOC 2-ready / Supabase / row-level security claims; replaced with editorial-rigour framing (cross-brand panel scoring, source-traced claims, written narrative).
+- **`src/app/(marketing)/solutions/agency/page.tsx`** — Bottom CTA price `₹5,999/mo` corrected to `$249/mo` (post-USD migration leftover that contradicted the live pricing page). Bottom-CTA `/sign-up` link routed to `/sign-up?plan=agency` for plan-aware signup.
+- **`src/app/(marketing)/solutions/fmcg/page.tsx`**, **`/ecommerce/page.tsx`**, **`/tech/page.tsx`** — Bottom-CTA `First brief within 7 days of signup` aligned with the rest of the site as `First brief lands the Sunday after signup.` `/sign-up` links routed to `/sign-up?plan=growth`.
+- **`src/app/(marketing)/use-cases/page.tsx`** — Bottom CTA `No credit card required` corrected to `Card required at signup. Cancel any time before day 14.` (every other page on the site says card-required — this one was contradicting it). Button copy `Start tracking free` → `Start free trial` for site-wide consistency. Link routed to `/sign-up?plan=growth`.
+
+### Why
+
+The user pushed back on a copy audit that had drifted into "enterprise CI tool" framing — leaning on vendor-stack name-drops, SOC 2 claims we don't have, sub-processor disclosures, internal pipeline plumbing, and competitor comparisons against the wrong category (sales-enablement CI like Crayon/Klue rather than marketing channel intelligence). This pass corrects the positioning to what Mayil actually is: **marketing channel intelligence** — for two specific buyers with distinct reads (Founders who don't have a marketing head, CMOs who need one shared competitive read across a team). The "SMB-at-enterprise" pitch now lives in editorial rigour (verified claims, cross-brand panel scoring, publishing standard) rather than infrastructure name-drops or premature certifications. Inconsistencies that would have eroded trust during diligence — wrong currency on the agency page, contradicting trial-card promises, three different first-brief timelines, and four CTA destinations for the same intent — were swept in the same pass.
 
 ---
 

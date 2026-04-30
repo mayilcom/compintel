@@ -84,10 +84,10 @@ export default function TechSolutionPage() {
         <div className="mx-auto max-w-5xl px-6 py-16 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
           <div>
             <h2 className="font-display text-xl text-ink mb-1">Ready to track your competitors?</h2>
-            <p className="text-[13px] text-muted">14-day free trial. First brief within 7 days of signup.</p>
+            <p className="text-[13px] text-muted">14-day free trial. First brief lands the Sunday after signup.</p>
           </div>
           <div className="flex gap-3 shrink-0">
-            <Link href="/sign-up"><Button>Start free trial</Button></Link>
+            <Link href="/sign-up?plan=growth"><Button>Start free trial</Button></Link>
             <Link href="/contact"><Button variant="outline">Request a demo</Button></Link>
           </div>
         </div>

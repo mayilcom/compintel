@@ -5,59 +5,53 @@ import { Badge } from '@/components/ui/badge'
 export const metadata = {
   title: 'Product — Mayil',
   description:
-    'Mayil is a competitive intelligence brief delivered every Sunday morning. Cross-brand panel scoring, synthesised signals, and verified claims — not raw data.',
+    'Mayil is a marketing channel intelligence brief delivered every Sunday morning. Cross-brand panel scoring, synthesised signals, and verified claims — not raw data.',
 }
 
 const INTELLIGENCE = [
   {
     label: 'Cross-brand panel scoring',
     body:
-      'Every metric is ranked against your peer panel for the week. Headlines lead with relative position — "HubSpot posted 3.5× the panel median" — not week-over-week noise. New customers get a meaningful first brief, not a baseline placeholder.',
+      'Every metric is ranked against your peer panel for the week. Headlines lead with relative position, "HubSpot posted 3.5x the panel median" not week-over-week noise. Briefs are meaningful from the first week onwards.',
   },
   {
     label: 'Signal synthesis',
     body:
-      'Related signals across channels are clustered into a single story. A LinkedIn hire, a pricing-page change, and a Google Ads spike that all point at the same competitor become one narrative — not three disconnected bullet points.',
+      'Related signals across channels are clustered into a single story. A team hire, website change, and a Google Ads spike that all point at the same competitor become one narrative, not three disconnected bullet points.',
   },
   {
     label: 'Verified claims',
     body:
-      'Every number in the brief is traced back to its source data point before delivery. Unsupported claims and predictions are blocked from shipping. The brief tells you what happened — never what might happen.',
+      'Every number in the brief is traced back to its source data point before delivery. Unsupported claims and predictions are blocked from shipping. The brief tells you what happened, never what might happen.',
   },
 ]
 
-const PIPELINE = [
-  { time: 'Sat 8pm', stage: 'Collect',     body: 'Snapshots from every tracked channel for every brand.' },
-  { time: 'Sat 11pm', stage: 'Diff',        body: 'Week-over-week deltas computed for context.' },
-  { time: 'Sun 12am', stage: 'Rank',        body: 'Cross-brand panel scoring assigns 1–100 to each signal.' },
-  { time: 'Sun 1am',  stage: 'Synthesise',  body: 'Related signals clustered into evidence-backed stories.' },
-  { time: 'Sun 2am',  stage: 'Interpret',   body: 'Claude rewrites each signal into publication-quality copy.' },
-  { time: 'Sun 3am',  stage: 'Verify',      body: 'Every claim is checked against source data. Failures retry or drop.' },
-  { time: 'Sun 4am',  stage: 'Assemble',    body: 'The lead story, supporting evidence, and activity catalog are stitched.' },
-  { time: 'Sun 7am',  stage: 'Deliver',     body: 'Brief lands in inboxes — your week starts informed.' },
-]
-
-const CHANNELS_LIVE = [
-  { name: 'Instagram',           detail: 'Posts, engagement, posting cadence, follower trends' },
-  { name: 'Meta Ad Library',     detail: 'Active ads, new creatives, copy themes — via the official Graph API' },
-  { name: 'Amazon Reviews',      detail: 'Rating trajectory, review volume, negative-review surfacing' },
-  { name: 'Google News',         detail: 'Coverage volume, headlines, publication mix' },
-  { name: 'Google Search Ads',   detail: 'Active search ad copy and headlines' },
-  { name: 'Google Analytics',    detail: 'Your own session, traffic, and channel mix (OAuth)' },
-  { name: 'Google Search Console', detail: 'Your own organic queries, clicks, and impressions (OAuth)' },
-]
-
-const CHANNELS_NEXT = ['LinkedIn', 'YouTube', 'Twitter / X', 'Reddit', 'Glassdoor', 'Trustpilot']
-
-const SUBPROCESSORS = [
-  { name: 'Supabase',  purpose: 'Primary database — accounts, brands, snapshots, signals, briefs' },
-  { name: 'Clerk',     purpose: 'Authentication and team management' },
-  { name: 'Stripe',    purpose: 'Subscription billing and payment processing' },
-  { name: 'Anthropic', purpose: 'Claude — signal interpretation and verification' },
-  { name: 'Resend',    purpose: 'Brief email delivery' },
-  { name: 'Apify',     purpose: 'Public web scraping infrastructure for Instagram and Amazon' },
-  { name: 'Vercel',    purpose: 'Application hosting' },
-  { name: 'Railway',   purpose: 'Worker infrastructure for the weekly pipeline' },
+const QUESTIONS = [
+  {
+    n: '01',
+    q: 'What did our competitors spend on last week?',
+    a: 'Active ads, paid-search activity, and creative refresh rates — across every competitor in your panel.',
+  },
+  {
+    n: '02',
+    q: 'What new creative are they running — and who is it for?',
+    a: 'New ad units, the audience cues, and the messaging themes that signal a campaign push 7–10 days early.',
+  },
+  {
+    n: '03',
+    q: 'What is the press saying about them — and how loudly?',
+    a: 'Coverage volume, headline framing, publication mix — so you see when a competitor is being talked about, and where.',
+  },
+  {
+    n: '04',
+    q: 'Are their customers getting happier or unhappier?',
+    a: 'Rating trajectories, review velocity, and the categories of complaints showing up in the last seven days.',
+  },
+  {
+    n: '05',
+    q: 'Where did they go quiet — and what does the silence mean?',
+    a: 'A two-week gap in paid activity, a paused content cadence, a missing press mention — silence is its own signal.',
+  },
 ]
 
 export default function ProductPage() {
@@ -71,7 +65,7 @@ export default function ProductPage() {
           One brief. Every Sunday.<br />Your competitors, decoded.
         </h1>
         <p className="text-lg md:text-xl text-muted leading-relaxed max-w-3xl mb-10">
-          Mayil watches your competitors across the web — Instagram, Amazon, Meta Ads, Google News, Google Search Ads — and delivers a single AI-interpreted brief every Sunday at 7am. Not a dashboard. Not a feed. A weekly read that tells you what changed and what to do about it.
+          Mayil watches your competitors across the web and delivers a single AI-interpreted brief every Sunday at 8am. Not a dashboard. Not a feed. A weekly read that tells you what changed and what to do about it.
         </p>
         <div className="flex flex-wrap gap-3">
           <Link href="/sign-up?plan=growth">
@@ -90,7 +84,7 @@ export default function ProductPage() {
           <p className="label-section mb-4">What makes Mayil different</p>
           <h2 className="font-display text-3xl md:text-5xl text-ink mb-6">Three engines, one brief.</h2>
           <p className="text-base md:text-lg text-muted max-w-3xl mb-14 leading-relaxed">
-            Most competitive intelligence tools are scrapers with a dashboard bolted on. Mayil is built around the synthesis — the part that turns raw collection into something you actually act on.
+            Most competitive intelligence tools are scrapers with a dashboard bolted on. Mayil is built around the intelligence, the part that turns raw data into something you actually act on.
           </p>
           <div className="grid gap-6 md:grid-cols-3">
             {INTELLIGENCE.map(item => (
@@ -103,71 +97,42 @@ export default function ProductPage() {
         </div>
       </section>
 
-      {/* ── How it works (real pipeline) ── */}
+      {/* ── Questions the brief answers ── */}
       <section className="border-t border-border bg-paper">
         <div className="mx-auto max-w-[1440px] px-6 md:px-10 lg:px-12 py-24">
-          <p className="label-section mb-4">How the brief is built</p>
-          <h2 className="font-display text-3xl md:text-5xl text-ink mb-6">From snapshot to inbox in eleven hours.</h2>
+          <p className="label-section mb-4">What the brief answers</p>
+          <h2 className="font-display text-3xl md:text-5xl text-ink mb-6 max-w-3xl">Questions a Mayil brief answers each Sunday.</h2>
           <p className="text-base md:text-lg text-muted max-w-3xl mb-14 leading-relaxed">
-            Eight workers run sequentially every Saturday night. By Sunday at 7am, the brief is in every recipient&apos;s inbox — verified, clustered, and written.
+            The five questions a founder or marketing head would ask on a Sunday morning if they had the time to read every channel themselves.
           </p>
 
           <div className="rounded-[14px] border border-border bg-surface overflow-hidden max-w-5xl">
-            {PIPELINE.map((p, i) => (
+            {QUESTIONS.map((item, i) => (
               <div
-                key={p.stage}
-                className={`flex flex-col gap-2 p-6 sm:flex-row sm:items-center sm:gap-8 ${
-                  i < PIPELINE.length - 1 ? 'border-b border-border' : ''
+                key={item.n}
+                className={`flex flex-col gap-4 p-8 sm:flex-row sm:items-baseline sm:gap-10 ${
+                  i < QUESTIONS.length - 1 ? 'border-b border-border' : ''
                 }`}
               >
-                <div className="flex items-center gap-5 sm:w-56 shrink-0">
-                  <span className="font-mono text-sm text-muted shrink-0 w-20">{p.time}</span>
-                  <h3 className="text-lg font-semibold text-ink">{p.stage}</h3>
+                <span className="font-mono text-sm text-gold shrink-0 sm:w-12">{item.n}</span>
+                <div className="flex-1">
+                  <h3 className="font-display text-xl md:text-2xl text-ink mb-3 leading-snug">&ldquo;{item.q}&rdquo;</h3>
+                  <p className="text-base text-muted leading-relaxed">{item.a}</p>
                 </div>
-                <p className="text-base text-muted leading-relaxed flex-1">{p.body}</p>
               </div>
             ))}
           </div>
-          <p className="mt-5 text-sm text-muted">All times Indian Standard Time. Briefs are delivered in the recipient&apos;s timezone with consistent Sunday-morning timing wherever you are.</p>
         </div>
       </section>
 
-      {/* ── Channels ── */}
+      {/* ── Where Mayil reads ── */}
       <section id="channels" className="border-t border-border bg-surface scroll-mt-24">
         <div className="mx-auto max-w-[1440px] px-6 md:px-10 lg:px-12 py-24">
-          <p className="label-section mb-4">Channels</p>
-          <h2 className="font-display text-3xl md:text-5xl text-ink mb-6">What we collect — honestly.</h2>
-          <p className="text-base md:text-lg text-muted max-w-3xl mb-14 leading-relaxed">
-            Every paid plan includes every channel we collect. We&apos;d rather list five channels we ship well than promise twelve we ship poorly. The list grows; your subscription doesn&apos;t change.
+          <p className="label-section mb-4">Where Mayil reads</p>
+          <h2 className="font-display text-3xl md:text-5xl text-ink mb-8 max-w-3xl">Wherever your competitors actually market.</h2>
+          <p className="text-lg md:text-xl text-muted leading-relaxed max-w-3xl">
+            Paid ad surfaces, organic social, marketplace listings and reviews, news coverage, and search activity. If a competitive move shows up in public, the brief sees it — and the surfaces we read keep growing without changing your subscription.
           </p>
-
-          <h3 className="text-xl font-semibold text-ink mb-5">Live in every brief</h3>
-          <div className="rounded-[12px] border border-border bg-paper overflow-hidden mb-12 max-w-5xl">
-            {CHANNELS_LIVE.map((c, i) => (
-              <div
-                key={c.name}
-                className={`flex flex-col gap-2 p-6 sm:flex-row sm:items-center sm:gap-8 ${
-                  i < CHANNELS_LIVE.length - 1 ? 'border-b border-border' : ''
-                }`}
-              >
-                <h4 className="text-lg font-semibold text-ink sm:w-64 shrink-0">{c.name}</h4>
-                <p className="text-base text-muted leading-relaxed flex-1">{c.detail}</p>
-              </div>
-            ))}
-          </div>
-
-          <h3 className="text-xl font-semibold text-ink mb-5">In development</h3>
-          <div className="flex flex-wrap gap-2">
-            {CHANNELS_NEXT.map(ch => (
-              <span
-                key={ch}
-                className="rounded-full border border-border bg-paper px-4 py-2 text-sm font-medium text-muted"
-              >
-                {ch}
-              </span>
-            ))}
-          </div>
-          <p className="mt-5 text-sm text-muted">When a new channel ships, every existing customer gets it. No upgrade required.</p>
         </div>
       </section>
 
@@ -231,11 +196,11 @@ export default function ProductPage() {
             Mayil tracks public competitor activity — posts, ads, reviews, news — using official APIs and public scraping. The only customer data we hold is what you give us during onboarding: brand and competitor names, channel handles, recipient emails, and your own analytics if you connect them.
           </p>
 
-          <div className="grid gap-6 md:grid-cols-2 mb-14 max-w-5xl">
+          <div className="grid gap-6 md:grid-cols-2 max-w-5xl">
             <div className="rounded-[12px] border border-border bg-paper p-8">
               <h3 className="text-xl font-semibold text-ink mb-3">Where data lives</h3>
               <p className="text-base text-muted leading-relaxed">
-                Customer data is stored in Supabase (PostgreSQL) with row-level security on every table. Production infrastructure runs on Vercel and Railway. EU data residency is available on Enterprise plans.
+                Customer data is encrypted at rest and isolated per account. Production runs in regions that meet GDPR adequacy.
               </p>
             </div>
             <div className="rounded-[12px] border border-border bg-paper p-8">
@@ -245,34 +210,18 @@ export default function ProductPage() {
               </p>
             </div>
             <div className="rounded-[12px] border border-border bg-paper p-8">
-              <h3 className="text-xl font-semibold text-ink mb-3">GDPR &amp; privacy rights</h3>
+              <h3 className="text-xl font-semibold text-ink mb-3">Your privacy rights</h3>
               <p className="text-base text-muted leading-relaxed">
-                We honour access, rectification, erasure, and portability requests for any data subject — usually fulfilled within 14 days. Email <a href="mailto:privacy@emayil.com" className="text-gold-dark underline underline-offset-2 hover:text-gold">privacy@emayil.com</a>.
+                We honour access, rectification, erasure, and portability requests for any data subject — usually fulfilled within 14 days. Details on our <Link href="/privacy" className="text-gold-dark underline underline-offset-2 hover:text-gold">privacy page</Link>.
               </p>
             </div>
             <div className="rounded-[12px] border border-border bg-paper p-8">
               <h3 className="text-xl font-semibold text-ink mb-3">Data Processing Agreement</h3>
               <p className="text-base text-muted leading-relaxed">
-                A standard DPA is available on Enterprise plans. We can sign yours or provide ours, including standard contractual clauses for international transfers. <Link href="/contact" className="text-gold-dark underline underline-offset-2 hover:text-gold">Get in touch</Link>.
+                A standard DPA is available on request — we can sign yours or provide ours, including standard contractual clauses for international transfers. <Link href="/contact" className="text-gold-dark underline underline-offset-2 hover:text-gold">Get in touch</Link>.
               </p>
             </div>
           </div>
-
-          <h3 className="text-xl font-semibold text-ink mb-5">Sub-processors</h3>
-          <div className="rounded-[12px] border border-border bg-paper overflow-hidden max-w-5xl">
-            {SUBPROCESSORS.map((s, i) => (
-              <div
-                key={s.name}
-                className={`flex flex-col gap-2 p-6 sm:flex-row sm:items-center sm:gap-8 ${
-                  i < SUBPROCESSORS.length - 1 ? 'border-b border-border' : ''
-                }`}
-              >
-                <h4 className="text-lg font-semibold text-ink sm:w-44 shrink-0">{s.name}</h4>
-                <p className="text-base text-muted leading-relaxed flex-1">{s.purpose}</p>
-              </div>
-            ))}
-          </div>
-          <p className="mt-5 text-sm text-muted">We notify Enterprise customers in advance of any sub-processor changes.</p>
         </div>
       </section>
 

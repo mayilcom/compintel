@@ -107,11 +107,11 @@ export default function AgencySolutionPage() {
         <div className="mx-auto max-w-5xl px-6 py-16 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
           <div>
             <h2 className="font-display text-xl text-ink mb-1">Ready to scale competitive intelligence across your clients?</h2>
-            <p className="text-[13px] text-muted">Agency plan starts at ₹5,999/mo. Includes 10 brands and a dedicated solutions manager.</p>
+            <p className="text-[13px] text-muted">Agency plan starts at $249/mo. Includes 5 brands, 15 competitors, white-label sending, and CSV export.</p>
           </div>
           <div className="flex gap-3 shrink-0">
             <Link href="/contact"><Button>Request a demo</Button></Link>
-            <Link href="/sign-up"><Button variant="outline">Start free trial</Button></Link>
+            <Link href="/sign-up?plan=agency"><Button variant="outline">Start free trial</Button></Link>
           </div>
         </div>
       </section>

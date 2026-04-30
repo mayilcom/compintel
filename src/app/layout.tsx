@@ -48,7 +48,7 @@ export default function RootLayout({
           colorInputBackground: '#FFFFFF',
           colorInputText: '#0D0D0A',
           borderRadius: '0.625rem',
-          fontFamily: 'Instrument Sans, -apple-system, sans-serif',
+          fontFamily: 'Plus Jakarta Sans, Instrument Sans, -apple-system, sans-serif',
         },
         elements: {
           formButtonPrimary:
