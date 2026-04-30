@@ -54,12 +54,12 @@ export default function UseCasesPage() {
 
       <div className="mt-8 rounded-[14px] border border-border bg-surface-2 p-8 text-center">
         <h2 className="font-display text-xl text-ink mb-2">Ready to track your competitors?</h2>
-        <p className="text-[13px] text-muted mb-6">14-day free trial. No credit card required.</p>
+        <p className="text-[13px] text-muted mb-6">14-day free trial. Card required at signup. Cancel any time before day 14.</p>
         <Link
-          href="/sign-up"
+          href="/sign-up?plan=growth"
           className="inline-block rounded-[8px] bg-ink text-paper px-6 py-2.5 text-[13px] font-medium hover:opacity-90 transition-opacity"
         >
-          Start tracking free →
+          Start free trial →
         </Link>
       </div>
     </div>

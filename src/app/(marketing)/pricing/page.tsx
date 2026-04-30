@@ -9,9 +9,9 @@ const PLANS = [
     slug:        'starter',
     name:        'Starter',
     priceMonthly: 49,
-    priceAnnual:  39,
-    annualTotal:  468,
-    description: 'For founders tracking one product line and a small competitive set.',
+    priceAnnual:  40.83,
+    annualTotal:  490,
+    description: 'For the founder who wants the marketing head they haven\'t hired yet — every Sunday at 7am.',
     features: [
       '1 brand tracked',
       '3 competitors',
@@ -27,9 +27,9 @@ const PLANS = [
     slug:        'growth',
     name:        'Growth',
     priceMonthly: 129,
-    priceAnnual:  99,
-    annualTotal:  1188,
-    description: 'For marketing teams running multiple brands or expanding categories.',
+    priceAnnual:  107.5,
+    annualTotal:  1290,
+    description: 'For the CMO whose team needs one shared competitive read across brands — every Monday morning.',
     features: [
       '3 brands tracked',
       '10 competitors total',
@@ -46,9 +46,9 @@ const PLANS = [
     slug:        'agency',
     name:        'Agency',
     priceMonthly: 249,
-    priceAnnual:  199,
-    annualTotal:  2388,
-    description: 'For consultancies and growth agencies running CI for clients.',
+    priceAnnual:  207.5,
+    annualTotal:  2490,
+    description: 'For the operator running marketing intelligence for ten clients without losing a Friday.',
     features: [
       '5 brands tracked',
       '15 competitors total',
@@ -79,15 +79,15 @@ const ENTERPRISE_FEATURES = [
 const FAQ = [
   {
     q: 'Why do I need a card to start the trial?',
-    a: 'Card-on-file at signup keeps the trial-to-paid conversion clean — no day-15 cron, no missed emails, no surprise interruptions to your brief. Cancel any time before day 14 in your subscription settings and you are never charged.',
+    a: 'Card at signup keeps the trial-to-paid conversion clean. No missed emails, no surprise interruptions to your brief. Cancel any time before the trial in your subscription settings and you are never charged.',
   },
   {
     q: 'What counts as a "brand"?',
-    a: 'A brand is one entity you receive briefs about. If you track Stripe and Adyen as a single brand pair, that is one brand with one competitor. If your company runs three product lines and you want a separate brief for each, that is three brands.',
+    a: 'A brand is defined against the competitor you receive briefs about. If your brand has multiple products with multiple competitors, for each product you would need to track against their respective competition. For Google, Google Workspace against Microsoft Outlook, Google Cloud vs AWS and Gemini vs ChatGPT would be three brands.',
   },
   {
     q: 'Can I switch plans later?',
-    a: 'Yes — upgrade or downgrade any time from your subscription settings. Upgrades take effect immediately with prorated billing. Downgrades take effect at the end of your current billing cycle.',
+    a: 'Yes, upgrade or downgrade any time from your subscription settings. Upgrades take effect immediately with prorated billing. Downgrades take effect at the end of your current billing cycle.',
   },
   {
     q: 'What happens if I exceed a limit?',
@@ -95,16 +95,20 @@ const FAQ = [
   },
   {
     q: 'Do you offer annual billing?',
-    a: 'Yes — annual billing saves you two months on every plan. Toggle the billing cycle above to compare.',
+    a: 'Yes, annual billing saves you two months on every plan. Toggle the billing cycle above to compare.',
   },
   {
     q: 'How is my own data handled?',
-    a: 'Customer data lives in Supabase (PostgreSQL) with row-level security on every table. We honour GDPR access, rectification, erasure, and portability requests. EU data residency is available on Enterprise. Full details on the product page.',
+    a: 'Customer data is encrypted at rest and isolated per account. We honour GDPR access, rectification, erasure, and portability requests. Full details on our privacy page.',
   },
   {
-    q: 'Where do you operate?',
-    a: 'Mayil is global. Pricing is in USD; payments are processed by Stripe. Briefs deliver in your local timezone with consistent Sunday-morning timing.',
+    q: 'Can you provide custom channels?',
+    a: 'We are adding more channels in the future. If the list is part of it, you would receive the channels soon in your dashboard.',
   },
+  {
+    q: 'Is your support bot or human?',
+    a: 'We are humans (Bots: hoping to ☺) and available for your queries.'
+  }
 ]
 
 export default function PricingPage() {
@@ -120,7 +124,7 @@ export default function PricingPage() {
           Pay for the brief.<br />Not for the channels.
         </h1>
         <p className="mx-auto max-w-2xl text-lg md:text-xl text-muted leading-relaxed mb-12">
-          Every paid plan includes every channel we collect. We grow the channel list; your subscription stays the same. All prices in USD, billed via Stripe.
+          Every paid plan includes every channel we collect. We grow the channel list; your subscription stays the same. All prices in USD.
         </p>
 
         {/* Monthly / Annual toggle */}
@@ -166,9 +170,6 @@ export default function PricingPage() {
                 }`}
               >
                 <div>
-                  {plan.highlight && (
-                    <span className="label-section text-gold-dark mb-3 inline-block">Most popular</span>
-                  )}
                   <h2 className="font-display text-2xl text-ink">{plan.name}</h2>
                   <p className="mt-2 text-base text-muted leading-relaxed min-h-[48px]">{plan.description}</p>
                   <div className="mt-5 flex items-baseline gap-1">
@@ -283,7 +284,7 @@ export default function PricingPage() {
             Your first brief, this Sunday.
           </h2>
           <p className="text-base md:text-lg text-muted mb-12 max-w-2xl mx-auto leading-relaxed">
-            Start the trial today. Add your brand and competitors in under five minutes. The brief lands at 7am on Sunday in your timezone.
+            Start the trial today. Add your brand and competitors in under five minutes. The brief lands at 8am on Sunday in your timezone.
           </p>
           <Link href="/sign-up?plan=growth">
             <Button size="lg">Start free trial →</Button>

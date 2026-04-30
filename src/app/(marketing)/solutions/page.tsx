@@ -43,8 +43,8 @@ const DIFFERENTIATORS = [
     body: 'Separate briefs per brand, per category, or a single portfolio overview. Frequency, recipients, and signal focus are all configurable.',
   },
   {
-    title: 'Enterprise-grade infrastructure',
-    body: 'SOC 2-ready stack. Data hosted on Supabase with row-level security. SSO via your identity provider. SLA available.',
+    title: 'Built to a publishing standard',
+    body: 'Every brief in your portfolio meets the same editorial bar — cross-brand panel scoring, source-traced claims, and a written narrative your team can act on Monday morning. Single sign-on and SLA available on request.',
   },
 ]
 

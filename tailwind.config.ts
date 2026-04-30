@@ -54,7 +54,7 @@ const config: Config = {
         ring:  'hsl(var(--ring))',
       },
       fontFamily: {
-        display: ['DM Serif Display', 'Georgia', 'serif'],
+        display: ['Plus Jakarta Sans', '-apple-system', 'sans-serif'],
         body:    ['Instrument Sans', '-apple-system', 'sans-serif'],
         mono:    ['DM Mono', 'Courier New', 'monospace'],
       },

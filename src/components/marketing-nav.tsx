@@ -111,7 +111,7 @@ export function MarketingNav() {
             Sign in
           </Link>
           <Link href="/sign-up?plan=growth">
-            <Button size="lg">Start free trial</Button>
+            <Button size="lg">Free trial</Button>
           </Link>
         </div>
       </div>
