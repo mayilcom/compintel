@@ -11,16 +11,17 @@ const config: Config = {
     extend: {
       colors: {
         // ── Mayil design tokens (direct hex — use these in className)
-        paper:       '#F7F4ED',
+        // PREVIEW: Direction 3 — cool slate base, gold + signal accents unchanged
+        paper:       '#F7F8FA',   // was #F7F4ED — cool slate-50
         surface:     '#FFFFFF',
-        'surface-2': '#F0EDE4',
-        ink:         '#0D0D0A',
-        muted:       '#6B6860',   // text-muted = secondary text
-        border:      '#E0DDD4',
-        gold:        '#B8922A',
-        'gold-bg':   '#FBF5E4',
-        'gold-dark': '#7A5E1A',
-        // Signal colours
+        'surface-2': '#EFF1F4',   // was #F0EDE4 — cool slate-100
+        ink:         '#0A0E1A',   // was #0D0D0A — very dark cool, almost-blue near-black
+        muted:       '#5A6373',   // was #6B6860 — cool grey-blue
+        border:      '#DCE0E8',   // was #E0DDD4 — cool light border
+        gold:        '#B8922A',   // unchanged — pops as warm accent against cool base
+        'gold-bg':   '#FBF5E4',   // unchanged
+        'gold-dark': '#7A5E1A',   // unchanged
+        // Signal colours — unchanged (pop maximally against cool base)
         threat:      '#C0392B',
         watch:       '#B8922A',
         opportunity: '#2D7A4F',
@@ -64,7 +65,8 @@ const config: Config = {
         sm: 'calc(var(--radius) - 4px)',
       },
       boxShadow: {
-        card: '0 1px 4px rgba(13,13,10,0.06)',
+        // Strengthened so cards lift visibly on the lighter cool base
+        card: '0 1px 2px rgba(10,14,26,0.04), 0 4px 12px rgba(10,14,26,0.04)',
       },
     },
   },

@@ -6,21 +6,32 @@
 @tailwind utilities;
 
 /* ─── Mayil Design Tokens ───────────────────────────────────────────────────── */
+/*
+ * PREVIEW BRANCH — palette swap (warm paper → cool slate, Direction 3)
+ * Reason: sustained warm-cream backgrounds caused reading fatigue.
+ * Identity preserved: gold accent system, signal colours, fonts all unchanged.
+ * Base layers shift to a cool slate (slight blue undertone) — modern enterprise feel,
+ * gold reads as a deliberate warm accent against the cool base.
+ *
+ * IMPORTANT: tailwind.config.ts colors must match these values exactly —
+ * the named utilities (bg-paper, text-ink, etc.) resolve via tailwind.config,
+ * not via these CSS vars. Both files are kept in sync.
+ */
 :root {
-  /* Core palette */
-  --paper:        #F7F4ED;
+  /* Core palette — cool slate (was warm paper) */
+  --paper:        #F7F8FA;   /* was #F7F4ED — slate-50 */
   --surface:      #FFFFFF;
-  --surface-2:    #F0EDE4;
-  --ink:          #0D0D0A;
-  --muted:        #6B6860;
-  --border:       #E0DDD4;
+  --surface-2:    #EFF1F4;   /* was #F0EDE4 — slate-100 */
+  --ink:          #0A0E1A;   /* was #0D0D0A — very dark cool, almost-blue near-black */
+  --muted:        #5A6373;   /* was #6B6860 — cool grey-blue */
+  --border:       #DCE0E8;   /* was #E0DDD4 — cool light border */
 
-  /* Gold accent */
+  /* Gold accent — UNCHANGED (warm accent against cool base = strong contrast) */
   --gold:         #B8922A;
   --gold-bg:      #FBF5E4;
   --gold-dark:    #7A5E1A;
 
-  /* Signal colours */
+  /* Signal colours — UNCHANGED (pop maximally against cool base) */
   --threat:       #C0392B;
   --threat-bg:    #FDECEA;
   --watch:        #B8922A;
@@ -30,9 +41,9 @@
   --trend:        #1A5FA8;
   --trend-bg:     #E6F1FB;
   --silence:      #888780;
-  --silence-bg:   #F0EDE4;
+  --silence-bg:   #EFF1F4;   /* was #F0EDE4 — match new surface-2 */
 
-  /* Typography */
+  /* Typography — UNCHANGED */
   --font-display: 'DM Serif Display', Georgia, serif;
   --font-body:    'Instrument Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono:    'DM Mono', 'Courier New', monospace;
@@ -41,29 +52,29 @@
   --radius:       0.625rem; /* 10px */
   --radius-lg:    0.875rem; /* 14px */
 
-  /* Shadows */
-  --shadow-card:  0 1px 4px rgba(13, 13, 10, 0.06);
+  /* Shadows — strengthened (audit fix folded in) */
+  --shadow-card:  0 1px 2px rgba(10, 14, 26, 0.04), 0 4px 12px rgba(10, 14, 26, 0.04);
 
   /* ── shadcn/ui CSS variable bridge (proper HSL: H S% L%) ── */
-  --background:        42 38% 95%;    /* #F7F4ED paper        */
-  --foreground:        60 13% 5%;     /* #0D0D0A ink          */
-  --card:              0 0% 100%;     /* #FFFFFF surface      */
-  --card-foreground:   60 13% 5%;
+  --background:        220 25% 97%;   /* #F7F8FA paper (cool slate)    */
+  --foreground:        225 43% 7%;    /* #0A0E1A ink                   */
+  --card:              0 0% 100%;     /* #FFFFFF surface               */
+  --card-foreground:   225 43% 7%;
   --popover:           0 0% 100%;
-  --popover-foreground: 60 13% 5%;
-  --primary:           44 63% 44%;    /* #B8922A gold         */
-  --primary-foreground: 44 74% 94%;   /* #FBF5E4 gold-bg      */
-  --secondary:         45 29% 92%;    /* #F0EDE4 surface-2    */
-  --secondary-foreground: 60 13% 5%;
-  --muted:             45 29% 92%;    /* #F0EDE4              */
-  --muted-foreground:  44 5% 40%;     /* #6B6860              */
-  --accent:            44 74% 94%;    /* #FBF5E4 gold-bg      */
-  --accent-foreground: 43 90% 29%;    /* #7A5E1A gold-dark    */
-  --destructive:       6 63% 46%;     /* #C0392B threat       */
+  --popover-foreground: 225 43% 7%;
+  --primary:           44 63% 44%;    /* #B8922A gold                  */
+  --primary-foreground: 44 74% 94%;   /* #FBF5E4 gold-bg               */
+  --secondary:         213 16% 95%;   /* #EFF1F4 surface-2             */
+  --secondary-foreground: 225 43% 7%;
+  --muted:             213 16% 95%;   /* #EFF1F4                       */
+  --muted-foreground:  217 12% 40%;   /* #5A6373                       */
+  --accent:            44 74% 94%;    /* #FBF5E4 gold-bg               */
+  --accent-foreground: 43 90% 29%;    /* #7A5E1A gold-dark             */
+  --destructive:       6 63% 46%;     /* #C0392B threat                */
   --destructive-foreground: 0 0% 100%;
-  --border:            45 16% 86%;    /* #E0DDD4              */
-  --input:             45 16% 86%;
-  --ring:              44 63% 44%;    /* #B8922A gold focus ring */
+  --border:            218 18% 89%;   /* #DCE0E8                       */
+  --input:             218 18% 89%;
+  --ring:              44 63% 44%;    /* #B8922A gold focus ring       */
 }
 
 /* ─── Force light mode globally — dark mode is out of scope for V1 ─────────── */
